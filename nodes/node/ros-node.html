@@ -18,8 +18,8 @@
             params: {value: {}},
             remaps: {value: {}},
         },
-        inputs: 0,
-        outputs: 1,
+        inputs: 1,
+        outputs: 2,
         icon: "file.svg",
         label: function() {
             return this.node || "ros-node";
@@ -39,7 +39,10 @@
                 // make sure to not erase previously selected value
                 const selected_package = node.package;
 
-                const packages_list = await $.getJSON("ros-node/list_packages");
+                const packages_list = await $.getJSON("/ros/manager/list_packages",
+                {
+                    manager_id: RED.nodes.node(node.manager).manager_id,
+                });
 
                 for (const package of packages_list)
                 {
@@ -56,7 +59,11 @@
 
                 const selected_node = node.node;
 
-                const node_list = await $.getJSON(`ros-node/list_nodes?package=${encodeURIComponent(selected_package)}`);
+                const node_list = await $.getJSON("ros/manager/list_nodes",
+                {
+                    manager_id: RED.nodes.node(node.manager).manager_id,
+                    package: selected_package,
+                });
 
                 for (const node of node_list) 
                 {
@@ -171,27 +178,27 @@
 <script type="text/html" data-template-name="ros-node">
     
     <div class="form-row">
-        <label for="node-input-manager"><i class="fa fa-bookmark"></i> Port</label>
+        <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
         <input type="text" id="node-input-manager">
     </div>
 
     <div class="form-row">
-        <label for="node-input-package"><i class="fa fa-tag"></i>Package</label>
+        <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
         <select id="node-input-package" placeholder="Package"></select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-node"><i class="fa fa-tag"></i>Node</label>
+        <label for="node-input-node"><i class="fa fa-file"></i> Node</label>
         <select id="node-input-node" placeholder="Node"></select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-params_container"><i class="fa fa-bars"></i>Params</label>
+        <label for="node-input-params_container"><i class="fa fa-list"></i> Parameters</label>
         <ol id="node-input-params_container"></ol>
     </div>
 
     <div class="form-row">
-        <label for="node-input-remaps_container"><i class="fa fa-bars"></i>Remaps</label>
+        <label for="node-input-remaps_container"><i class="fa fa-list"></i> Remaps</label>
         <ol id="node-input-remaps_container"></ol>
     </div>
 

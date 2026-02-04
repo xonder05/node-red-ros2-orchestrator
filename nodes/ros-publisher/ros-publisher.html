@@ -21,45 +21,51 @@
             return this.name||"ros-publisher";
         },
 
-        oneditprepare: function () 
+        oneditprepare: async function () 
         {
-            // package select menu
-            const package_select = $("#node-input-package");
-            $.getJSON("ros-publisher/list-packages", (packages_list) => 
-            {
-                // make sure to not erase previously selected value
-                const selected_package = this.package;
+            const node = this;
 
-                package_select.empty();
-                packages_list.forEach(item => 
-                {
-                    const selected = (item === selected_package) ? "selected" : "";
-                    package_select.append(`<option value="${item}" ${selected}>${item}</option>`);
-                });
+            const package_dropdown = $("#node-input-package");
+            const interface_dropdown = $("#node-input-interface");
+
+            async function populate_package_dropdown() 
+            {
+                package_dropdown.empty()
+
+                const selected_package = node.package;
+
+                const packages_list = await $.getJSON("ros/local/list_packages");
                 
-                package_select.trigger("change");
-            });
-
-            // on package change update intefaces list
-            package_select.on("change", () => 
-            {
-                const interface_select = $("#node-input-interface");
-                const selected_package = package_select.val() ? package_select.val() : this.package;
-
-                $.getJSON(`ros-publisher/list-interfaces?package=${encodeURIComponent(selected_package)}`, (interfaces_list) => 
+                for (const package of packages_list)
                 {
-                    console.log(interfaces_list);
+                    const selected = (package === selected_package) ? "selected" : "";
+                    package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                }
+            }
 
-                    const selected_interface = this.interface;
+            async function populate_interface_dropdown() 
+            {
+                const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
 
-                    interface_select.empty();
-                    interfaces_list.forEach(item => 
-                    {
-                        const selected = (item === selected_interface) ? "selected" : "";
-                        interface_select.append(`<option value="${item}" ${selected}>${item}</option>`);
-                    });
+                interface_dropdown.empty();
+
+                const selected_interface = node.interface;
+
+                const interfaces_list = await $.getJSON("ros/local/list_interfaces",
+                {
+                    package: selected_package,
                 });
-            });
+
+                for (const interface of interfaces_list)
+                {
+                    const selected = (interface === selected_interface) ? "selected" : "";
+                    interface_dropdown.append(`<option value="${interface}" ${selected}>${interface}</option>`);
+                }
+            }
+
+            package_dropdown.on("change", populate_interface_dropdown);
+
+            await populate_package_dropdown();
         }
 
     });
@@ -69,18 +75,18 @@
 <script type="text/html" data-template-name="ros-publisher">
     
     <div class="form-row">
-        <label for="node-input-topic"><i class="fa fa-tag"></i> Package</label>
+        <label for="node-input-topic"><i class="fa fa-tag"></i> Topic</label>
         <input id="node-input-topic" type="text" placeholder="topic"></select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-package"><i class="fa fa-tag"></i> Package</label>
-        <select id="node-input-package" placeholder="Package"></select>
+        <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
+        <select id="node-input-package" placeholder="package"></select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-interface"><i class="fa fa-tag"></i> Node</label>
-        <select id="node-input-interface" placeholder="Interface"></select>
+        <label for="node-input-interface"><i class="fa fa-cubes"></i> Type</label>
+        <select id="node-input-interface" placeholder="type"></select>
     </div>
 
 </script>
