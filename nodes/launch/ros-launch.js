@@ -7,7 +7,7 @@
 module.exports = function(RED) 
 {
     const is_web_api = require("is-web-api");
-    const fs = require('fs');
+    const events = require('events');
 
     function ROSLaunch(config) 
     {
@@ -27,24 +27,51 @@ module.exports = function(RED)
             node.status(node.state);
 
             register_is();
-
             RED.events.once("flows:started", flow_started_event_handler.bind(this))
+
+            node.event_emitter = new events.EventEmitter();
+            node.on("input", input_event_handler);
+
             node.on("close", close_event_handler.bind(this));
+            RED.events.once("flows:stopped", flow_stopped_event_handler);
         }
 
-        function flow_started_event_handler()
+        function close_event_handler(removed, done)
         {
-            is_web_api.launch();
+            if (done) {
+                node.done = done;
+            }
+
+            // node running, stop it
+            if (["green"].includes(node.state.fill))
+            {
+                node.closing = true;
+                stop_node();
+            }
+
+            // last handler call, proper cleanup
+            if (["grey", "blue", "red"].includes(node.state.fill))
+            {
+                unregister_is();
+                node.done();
+            }
+        }
+
+        function start_node()
+        {
+            console.log(config.launch_args)
 
             const msg = {
+                message_type: "20",
                 manager_id: node.manager_config.manager_id,
-                message_type: 20,
                 node_id: "id_" + node.node_id,
-                package_name: config.package, 
-                node_name: config.launch_name, 
-                param_json: JSON.stringify(config.launch_args),
-                remap_json: "{}",
-                return_value: 0
+                data: [
+                    {key: "package_name", value: config.package},
+                    {key: "node_name",    value: config.launch_name},
+                    ...Object.entries(config.launch_args).map( ([k, v]) => {
+                        return {key: "arg_" + k, value: v}
+                    })
+                ]
             };
             
             if (!is_web_api.send_message("management/commands", msg))
@@ -62,6 +89,7 @@ module.exports = function(RED)
             }
             else
             {
+                // todo fix this
                 node.state = {fill: "blue", shape: "dot", text: "Waiting for Integration Service"}
                 node.status(node.state);
 
@@ -69,75 +97,97 @@ module.exports = function(RED)
                     flow_started_event_handler();
                 }, 1000);
             }
+
+            node.event_emitter.on("", (res) => 
+            {
+                // set node status based on the return value
+                if([1, 11].includes(res.return_value))
+                {
+                    node.state = {fill: "green", shape: "dot", text: "Running"} 
+                    node.status(node.state);
+                }
+                else
+                {
+                    node.state = {fill: "red", shape: "dot", text: ("Error: " + res.return_value)}
+                    node.status(node.state);
+                }
+            })
         }
 
-        function close_event_handler(removed, done)
+        function stop_node()
         {
-            // first handler call (from node-red)
-            if (removed && done)
-            {
-                node.removed = removed;
-                node.done = done;
-            }
-
-            // last handler call, proper cleanup
-            if (["grey", "blue", "red"].includes(node.state.fill))
-            {
-                clearTimeout(node.close_timeout);
-                unregister_is();
-                is_web_api.launch();
-                node.done();
-                return;
-            }
-            
-            // ros2 communication
             const msg = {
-                manager_id: node.manager_config.manager_id,
                 message_type: 50,
+                manager_id: node.manager_config.manager_id,
                 node_id: "id_" + node.node_id,
-                package_name: config.package, 
-                node_name: config.launch_name, 
-                param_json: "{}",
-                remap_json: "{}",
-                return_value: 0
+                data: [
+                    {package_name: config.package},
+                    {node_name: config.launch_name},
+                ]
             };
 
             if (!is_web_api.send_message("management/commands", msg))
             {
                 node.state = {fill: "yellow", shape: "dot", text: "Stopping launch file"}
                 node.status(node.state);
-
-                node.closing = true;
-
-                node.close_timeout = setTimeout(() => {
-                    if (node.state.fill != "grey")
-                    {
-                        node.state = {fill: "red", shape: "dot", text: "Backend didn't respond"}
-                        node.status(node.state);
-                        close_event_handler();
-                    }
-                }, 10000);
             }
             else
             {
                 node.state = {fill: "yellow", shape: "dot", text: "Waiting for Integration Service"}
                 node.status(node.state);
-
-                setTimeout(() => {
-                    close_event_handler();
-                }, 100);
             }
+
+            node.event_emitter.once("", (res) => 
+            {
+                clearTimeout(node.stop_node_timeout)
+
+                // success return code
+                if([5, 15].includes(res.return_value))
+                {
+                    node.state = {fill: "grey", shape: "dot", text: "Offline"} 
+                    node.status(node.state);
+
+                    if (node.closing) {
+                        close_event_handler()
+                    }
+                }
+                else
+                {
+                    node.state = {fill: "red", shape: "dot", text: "Could not stop node, todo ret code"}
+                    node.status(node.state);
+                }
+            })
+
+            node.stop_node_timeout = setTimeout(() => {
+                if (node.state.fill != "grey")
+                {
+                    node.state = {fill: "red", shape: "dot", text: "Backend didn't respond"}
+                    node.status(node.state);
+                }
+            }, 5000);
+
+        }
+
+        function flow_started_event_handler()
+        {
+            is_web_api.launch();
+            setTimeout(start_node, 1000);
+        }
+
+        function flow_stopped_event_handler()
+        {
+            is_web_api.launch();
         }
 
         function register_is()
         {
             // join commands topic
-            const interface_path = get_interface_path("node_manager", "NodeRedCommand");
+            const interface_path = get_interface_path("node_manager", "NodeManagerCommand");
             const folder_path = interface_path.slice(0, interface_path.lastIndexOf("/"));
-            is_web_api.add_custom_ros2_type("node_manager", "NodeRedCommand", folder_path);
+            is_web_api.add_custom_ros2_type("node_manager", "NodeManagerCommand", folder_path);
 
             const topic_name = "management/commands";
-            const message_type = "node_manager/NodeRedCommand";
+            const message_type = "node_manager/NodeManagerCommand";
             const qos = {
                 history: {
                     kind: "KEEP_LAST",
@@ -163,9 +213,9 @@ module.exports = function(RED)
         function unregister_is()
         {
             // join commands topic
-            const interface_path = get_interface_path("node_manager", "NodeRedCommand");
+            const interface_path = get_interface_path("node_manager", "NodeManagerCommand");
             const folder_path = interface_path.slice(0, interface_path.lastIndexOf("/"));
-            is_web_api.remove_custom_ros2_type("node_manager", "NodeRedCommand", folder_path);
+            is_web_api.remove_custom_ros2_type("node_manager", "NodeManagerCommand", folder_path);
 
             const topic_name = "management/commands";
             is_web_api.remove_publisher(topic_name);
@@ -202,34 +252,22 @@ module.exports = function(RED)
                 return;
             }
 
-            // set node status based on the return value
-            if([1, 11].includes(res.return_value))
+            node.event_emitter.emit("", res);
+        }
+
+        function input_event_handler(msg, send, done)
+        {
+            if (msg.payload == true)
             {
-                node.state = {fill: "green", shape: "dot", text: "Running"} 
-                node.status(node.state);
+                start_node()
             }
-            else
+            
+            if (msg.payload == false)
             {
-                node.state = {fill: "red", shape: "dot", text: ("Error: " + res.return_value)}
-                node.status(node.state);
+                stop_node()
             }
 
-            if(!node.closing) {
-                return;
-            }
-
-            // set node status based on the return value
-            if([5, 15].includes(res.return_value))
-            {
-                node.state = {fill: "grey", shape: "dot", text: "Offline"} 
-                node.status(node.state);
-
-                close_event_handler();
-            }
-            else
-            {
-                // error stopping, todo handle gracefully
-            }
+            done();
         }
 
         function log_callback(msg)
@@ -240,6 +278,11 @@ module.exports = function(RED)
                 id: node.id,
                 log: node.log,
             }, true);
+
+            out = {
+                payload: msg.msg?.data   
+            }
+            node.send([null, out])
         }
 
         init();
@@ -247,14 +290,20 @@ module.exports = function(RED)
 
     RED.nodes.registerType("ros-launch", ROSLaunch);
 
-    function get_interface_path(package, interface)
+    if(!global.log_setup_complete)
     {
-        const { execSync } = require("child_process");
+        global.log_setup_complete = true;
 
-        const package_name = package + "/msg/" + interface;
-        const cmd = `python3 -c "from rosidl_runtime_py import get_interface_path; print(get_interface_path('${package_name}'))"`;
+        RED.httpAdmin.get("/get_log", RED.auth.needsPermission("ros-launch.read"), function (req, res) 
+        {
+            const node = RED.nodes.getNode(req.query.id);
 
-        const stdout = execSync(cmd, {encoding: "utf8"}); 
-        return stdout;
-    };
+            if (node) {
+                res.send(node.log);
+            }
+            else {
+                res.status(404).json({ error: "Node not found" });
+            }
+        });
+    }
 }
