@@ -1,0 +1,51 @@
+<script> /**
+ * @file ros-interface.html
+ * @author Daniel Onderka (xonder05)
+ * @date 01/2026
+ */ </script>
+
+<script type="text/javascript">
+
+    RED.nodes.registerType("ros-interface", {
+        category: "ROS2",
+        color: "#E2D96E",
+        defaults: {
+            start: {value: ""},
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "file.png",
+        label: function () {
+            return "ros-interface";
+        },
+
+        oneditprepare: async function () 
+        {
+            $("#node-input-start").typedInput({
+                types: [
+                    {
+                        value: "start_mode",
+                        options: [
+                            { value: "deploy", label: "Deploy"},
+                            { value: "input", label: "Input"},
+                        ]
+                    }
+                ]
+            })
+        }
+    });
+
+</script>
+
+<script type="text/html" data-template-name="ros-interface">
+
+    <div class="form-row">
+        <label for="node-input-start"><i class="fa fa-file"></i> Start bridge on</label>
+        <input type="text" id="node-input-start">
+    </div>
+
+</script>
+
+<script type="text/html" data-help-name="ros-interface">
+    <p>Node description</p>
+</script>
