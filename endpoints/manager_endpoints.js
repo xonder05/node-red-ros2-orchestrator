@@ -45,6 +45,12 @@ module.exports = function(RED)
     RED.httpAdmin.get("/ros/manager/list_packages",
     async function (req, res) 
     {
+        if (ros2.state.get() == "inactive")
+        {
+            res.status(500).json({state: "inactive"});
+            return;
+        }
+
         const manager_id = req.query.manager_id;
         const node_id = generateId(); 
         
@@ -57,7 +63,7 @@ module.exports = function(RED)
 
         const request_serial = serialize_commands_message(request);
 
-        const response_serial = await ros2.call("commands", node_id, request_serial);
+        const response_serial = await ros2.call(node_id, "commands", request_serial);
         
         const response = deserialize_command_message(response_serial)
 
@@ -76,6 +82,12 @@ module.exports = function(RED)
     RED.httpAdmin.get("/ros/manager/list_nodes",
     async function (req, res) 
     {
+        if (ros2.state.get() == "inactive")
+        {
+            res.status(500).json({state: "inactive"});
+            return;
+        }
+
         const manager_id = req.query.manager_id;
         const node_id = generateId(); 
         const selectedPackage = req.query.package;
@@ -90,7 +102,7 @@ module.exports = function(RED)
 
         const request_serial = serialize_commands_message(request);
 
-        const response_serial = await ros2.call("commands", node_id, request_serial);
+        const response_serial = await ros2.call(node_id, "commands", request_serial);
         
         const response = deserialize_command_message(response_serial)
 
@@ -109,6 +121,12 @@ module.exports = function(RED)
     RED.httpAdmin.get("/ros/manager/list_launch_files",
     async function (req, res) 
     {
+        if (ros2.state.get() == "inactive")
+        {
+            res.status(500).json({state: "inactive"});
+            return;
+        }
+
         const manager_id = req.query.manager_id;
         const node_id = generateId(); 
         const selectedPackage = req.query.package;
@@ -123,7 +141,7 @@ module.exports = function(RED)
         
         const request_serial = serialize_commands_message(request);
             
-        const response_serial = await ros2.call("commands", node_id, request_serial);
+        const response_serial = await ros2.call(node_id, "commands", request_serial);
         
         const response = deserialize_command_message(response_serial)
 
@@ -142,6 +160,12 @@ module.exports = function(RED)
     RED.httpAdmin.get("/ros/manager/get_launch_arguments",
     async function (req, res)
     {
+        if (ros2.state.get() == "inactive")
+        {
+            res.status(500).json({state: "inactive"});
+            return;
+        }
+
         const manager_id = req.query.manager_id;
         const node_id = generateId(); 
         const launch_file_path = req.query.launch_file_path;
@@ -156,7 +180,7 @@ module.exports = function(RED)
         
         const request_serial = serialize_commands_message(request);
 
-        const response_serial = await ros2.call("commands", node_id, request_serial);
+        const response_serial = await ros2.call(node_id, "commands", request_serial);
 
         const response = deserialize_command_message(response_serial);
 
@@ -175,6 +199,12 @@ module.exports = function(RED)
     RED.httpAdmin.get("/ros/manager/get_full_launch_path", 
     async function (req, res)
     {
+        if (ros2.state.get() == "inactive")
+        {
+            res.status(500).json({state: "inactive"});
+            return;
+        }
+
         const manager_id = req.query.manager_id;
         const node_id = generateId(); 
         const package_name = req.query.package_name;
@@ -191,7 +221,7 @@ module.exports = function(RED)
         
         const request_serial = serialize_commands_message(request);
 
-        const response_serial = await ros2.call("commands", node_id, request_serial);
+        const response_serial = await ros2.call(node_id, "commands", request_serial);
         
         const response = deserialize_command_message(response_serial)
 
@@ -201,6 +231,12 @@ module.exports = function(RED)
     RED.httpAdmin.get("/ros/manager/get_file_content",
     async function (req, res) 
     {
+        if (ros2.state.get() == "inactive")
+        {
+            res.status(500).json({state: "inactive"});
+            return;
+        }
+
         const manager_id = req.query.manager_id;
         const node_id = generateId(); 
         const launch_file_path = req.query.launch_file_path;
@@ -215,7 +251,7 @@ module.exports = function(RED)
         
         const request_serial = serialize_commands_message(request);
 
-        const response_serial = await ros2.call("commands", node_id, request_serial);
+        const response_serial = await ros2.call(node_id, "commands", request_serial);
         
         const response = deserialize_command_message(response_serial)
 

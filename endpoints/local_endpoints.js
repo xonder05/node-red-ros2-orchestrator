@@ -2,6 +2,24 @@ module.exports = function(RED)
 {
     const child_process = require("child_process");
 
+    if(!global.log_setup_complete)
+    {
+        global.log_setup_complete = true;
+
+        RED.httpAdmin.get("/get_log", 
+        function (req, res) 
+        {
+            const node = RED.nodes.getNode(req.query.id);
+
+            if (node) {
+                res.send(node.log);
+            }
+            else {
+                res.status(404).json({ error: "Node not found" });
+            }
+        });
+    }
+
     RED.httpAdmin.get("/ros/local/list_packages",
     function (req, res) 
     {
