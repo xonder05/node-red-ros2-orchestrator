@@ -4,6 +4,9 @@
   "description": "",
   "node-red": {
     "nodes": {
+      "local_endpoints": "endpoints/local_endpoints.js",
+      "manage_endpoints": "endpoints/manager_endpoints.js",
+      "ros-interface": "nodes/interface/ros-interface.js",
       "ros-node": "nodes/node/ros-node.js",
       "ros-launch": "nodes/launch/ros-launch.js",
       "ros-show-unmanaged": "nodes/ros-show/ros-show.js",
