@@ -29,6 +29,9 @@
         {
             const node = this;
 
+            const active_div = $("#active");
+            const inactive_div = $("#inactive");
+
             const package_dropdown = $("#node-input-package");
             const launch_file_dropdown = $("#node-input-launch_name");
             const launch_file_content_dropdown = $("#node-input-launch_content");
@@ -41,11 +44,22 @@
                 // previously selected value
                 const selected_package = node.package;
 
-                // list of available packages
-                const packages_list = await $.getJSON("ros/manager/list_packages",
+                let packages_list = [];
+                try 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                });
+                    // list of available packages
+                    packages_list = await $.getJSON("ros/manager/list_packages",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                    });
+                } 
+                catch (error) 
+                {
+                    if (error.responseJSON.state == "inactive") {
+                        active_div.hide();
+                        inactive_div.show();
+                    }
+                }
 
                 for (const package of packages_list)
                 {
@@ -62,11 +76,22 @@
 
                 const selected_launch = node.launch_name;
 
-                const launch_file_list = await $.getJSON("ros/manager/list_launch_files",
+                let launch_file_list = [];
+                try 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                    package: selected_package,
-                });
+                    launch_file_list = await $.getJSON("ros/manager/list_launch_files",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package: selected_package,
+                    });
+                } 
+                catch (error) 
+                {
+                    if (error.responseJSON.state == "inactive") {
+                        active_div.hide();
+                        inactive_div.show();
+                    }
+                }
 
                 for (const launch_file of launch_file_list)
                 {
@@ -106,18 +131,30 @@
                 const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
                 const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
 
-                const launch_file_path = await $.getJSON("ros/manager/get_full_launch_path",
+                let launch_file_path = "";
+                let arguments_dict = {};
+                try 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                    package_name: selected_package,
-                    launch_file_name: selected_launch_file_name,
-                });
+                    launch_file_path = await $.getJSON("ros/manager/get_full_launch_path",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package_name: selected_package,
+                        launch_file_name: selected_launch_file_name,
+                    });
 
-                const arguments_dict = await $.getJSON("ros/manager/get_launch_arguments",
+                    arguments_dict = await $.getJSON("ros/manager/get_launch_arguments",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        launch_file_path: launch_file_path,
+                    });
+                } 
+                catch (error) 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                    launch_file_path: launch_file_path,
-                });
+                    if (error.responseJSON.state == "inactive") {
+                        active_div.hide();
+                        inactive_div.show();
+                    }
+                }
 
                 $("#node-input-args_container").editableList('empty');
                 for(const [arg, def] of Object.entries(arguments_dict))
@@ -138,18 +175,30 @@
                 const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
                 const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
 
-                const launch_file_path = await $.getJSON("ros/manager/get_full_launch_path",
+                let launch_file_path;
+                let launch_file_content;
+                try 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                    package_name: selected_package,
-                    launch_file_name: selected_launch_file_name,
-                });
-                
-                const launch_file_content = await $.getJSON("/ros/manager/get_file_content",
+                    launch_file_path = await $.getJSON("ros/manager/get_full_launch_path",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package_name: selected_package,
+                        launch_file_name: selected_launch_file_name,
+                    });
+
+                    launch_file_content = await $.getJSON("/ros/manager/get_file_content",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        launch_file_path: launch_file_path,
+                    });
+                } 
+                catch (error) 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                    launch_file_path: launch_file_path,
-                });
+                    if (error.responseJSON.state == "inactive") {
+                        active_div.hide();
+                        inactive_div.show();
+                    }
+                }
 
                 node.editor = RED.editor.createEditor({
                     id: "node-input-launch_content",
@@ -158,13 +207,17 @@
                 });
             }
 
-            package_dropdown.on("change", populate_launch_file_dropdown);
-
-            launch_file_dropdown.on("change", populate_arguments_editable_list);
-        
-            launch_file_dropdown.on("change", populate_launch_file_contents);
+            active_div.show();
+            inactive_div.hide();
 
             await populate_package_dropdown();
+            await populate_launch_file_dropdown();
+            await populate_arguments_editable_list();
+            await populate_launch_file_contents();
+
+            package_dropdown.on("change", populate_launch_file_dropdown);
+            launch_file_dropdown.on("change", populate_arguments_editable_list);
+            launch_file_dropdown.on("change", populate_launch_file_contents);
         },
 
         oneditsave: function()
@@ -203,29 +256,38 @@
 
 <script type="text/html" data-template-name="ros-launch">
     
-    <div class="form-row">
-        <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
-        <input type="text" id="node-input-manager">
+    <div id="inactive" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: #555;">
+        <i class="fa fa-plug" style="font-size: 80px; margin-bottom: 20px; color: #e74c3c;"></i>
+        <div style="font-size: 24px; font-weight: bold;">ROS2 interface is offline</div>
     </div>
 
-    <div class="form-row">
-        <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
-        <select id="node-input-package" placeholder="Package"></select>
-    </div>
+    <div id="active">
 
-    <div class="form-row">
-        <label for="node-input-launch_name"><i class="fa fa-file"></i> Launch</label>
-        <select id="node-input-launch_name" placeholder="Launch"></select>
-    </div>
+        <div class="form-row">
+            <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
+            <input type="text" id="node-input-manager">
+        </div>
 
-    <div class="form-row">
-        <label for="node-input-args_container"><i class="fa fa-list"></i> Arguments</label>
-        <ol id="node-input-args_container"></ol>
-    </div>
+        <div class="form-row">
+            <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
+            <select id="node-input-package" placeholder="Package"></select>
+        </div>
 
-    <div class="form-row">
-        <label for="node-input-launch_content"><i class="fa fa-bars"></i> File</label>
-        <div class="node-text-editor" style="height: 40vh; min-height:10vh;" id="node-input-launch_content"></div>
+        <div class="form-row">
+            <label for="node-input-launch_name"><i class="fa fa-file"></i> Launch</label>
+            <select id="node-input-launch_name" placeholder="Launch"></select>
+        </div>
+
+        <div class="form-row">
+            <label for="node-input-args_container"><i class="fa fa-list"></i> Arguments</label>
+            <ol id="node-input-args_container"></ol>
+        </div>
+
+        <div class="form-row">
+            <label for="node-input-launch_content"><i class="fa fa-bars"></i> File</label>
+            <div class="node-text-editor" style="height: 40vh; min-height:10vh;" id="node-input-launch_content"></div>
+        </div>
+    
     </div>
 
 </script>
