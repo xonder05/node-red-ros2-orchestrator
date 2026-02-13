@@ -35,8 +35,7 @@ module.exports = function(RED)
             {
                 try
                 {
-                    [_, type] = config.interface.split("/");
-                    node.subscriber = await ros2.subscribe_topic(node.id, config.topic, config.package + "/" + type, log_callback);
+                    node.subscriber = await ros2.subscribe_topic(node.id, config.topic, config.package + "/" + config.interface, log_callback);
                 
                     node.state = {fill: "green", shape: "dot", text: "Subscribed"} 
                     node.status(node.state);

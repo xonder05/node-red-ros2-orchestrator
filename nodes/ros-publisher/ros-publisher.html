@@ -25,8 +25,53 @@
         {
             const node = this;
 
+            const topic_autocomplete = $("#node-input-topic");
             const package_dropdown = $("#node-input-package");
             const interface_dropdown = $("#node-input-interface");
+
+            node.topics_dictionary = {};
+
+            async function get_topics_dictionary()
+            {
+                node.topics_dictionary = await $.getJSON("ros/local/get_topics");
+            }
+
+            topic_autocomplete.autoComplete(
+            {
+                search: function(user_input) 
+                {
+                    let matches = [];
+
+                    for (topic of Object.keys(node.topics_dictionary))
+                    {
+                        if (topic.toLowerCase().indexOf(user_input.toLowerCase()) > -1)
+                        {
+                            matches.push({
+                                value: topic,
+                                label: topic,
+                                i: i
+                            })
+                        }
+                    }
+
+                    matches.sort(function(A,B){return A.i-B.i})
+                    
+                    return matches
+                },
+            });
+
+            topic_autocomplete.on("change", async function() 
+            {
+                if (this.value in node.topics_dictionary)
+                {
+                    const full_type_name = node.topics_dictionary[this.value]
+                    const [package_name, msg, type_name] = full_type_name.split("/")
+                    
+                    package_dropdown.val(package_name);
+                    await populate_interface_dropdown();
+                    interface_dropdown.val(type_name);
+                }
+            })
 
             async function populate_package_dropdown() 
             {
@@ -63,9 +108,11 @@
                 }
             }
 
-            package_dropdown.on("change", populate_interface_dropdown);
-
+            await get_topics_dictionary();
             await populate_package_dropdown();
+            await populate_interface_dropdown();
+
+            package_dropdown.on("change", populate_interface_dropdown);
         }
 
     });

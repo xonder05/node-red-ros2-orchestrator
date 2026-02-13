@@ -35,8 +35,7 @@ module.exports = function(RED)
             {
                 try
                 {
-                    [_, type] = config.interface.split("/");
-                    node.publisher = await ros2.advertise_topic(node.id, config.topic, config.package + "/" + type);
+                    node.publisher = await ros2.advertise_topic(node.id, config.topic, config.package + "/" + config.interface);
                 
                     node.state = {fill: "green", shape: "dot", text: "Advertised"} 
                     node.status(node.state);
