@@ -8,15 +8,16 @@
 
 <script type="text/javascript">
 
-    RED.nodes.registerType("ros-launch", {
+    RED.nodes.registerType("ros-launch", 
+    {
         category: "ROS2",
         color: "#E2D96E",
         defaults: {
             manager: {value: "", type: "manager-config"},
             package: {value: ""},
             launch_name: {value: ""},
+            config_name: {value: ""},
             launch_args: {value: {}},
-            launch_content: {value: ""},
         },
         inputs: 1,
         outputs: 2,
@@ -29,265 +30,541 @@
         {
             const node = this;
 
-            const active_div = $("#active");
-            const inactive_div = $("#inactive");
-
+            const interface_offline_alert = $("#interface-offline-alert");
+            const manager_dropdown = $("#node-input-manager");
             const package_dropdown = $("#node-input-package");
             const launch_file_dropdown = $("#node-input-launch_name");
-            const launch_file_content_dropdown = $("#node-input-launch_content");
+            const config_file_dropdown = $("#node-input-config_name");
+            const args_editable_list = $("#node-input-args_container");
+            const save_launch_btn = $("#save_launch_btn");
+            const save_config_btn = $("#save_config_btn");
+            const save_success_alert = $("#save-success-alert");
+            const save_failed_alert = $("#save-failed-alert");
+
+            function build_tabs()
+            {
+                node.tabs = RED.tabs.create(
+                {
+                    id: "tabs-header",
+                    scrollable: false,
+                    collapsible: false,
+
+                    onchange: function(tab) 
+                    {
+                        $("#tabs-content").children().hide()
+                        $(`#${tab.id}`).show()
+                    },
+                })
+
+                node.tabs.addTab({ id: "settings_tab", label: "Setting" })
+                node.tabs.addTab({ id: "launch_tab",  label: "Launch Editor" })
+                node.tabs.addTab({ id: "config_tab",  label: "Config Editor" })
+
+                $("#tabs-content").children().hide()
+                $("#settings_tab").show()
+            }
 
             async function populate_package_dropdown()
             {
-                // clear whatever used to be there
-                package_dropdown.empty();
-
-                // previously selected value
-                const selected_package = node.package;
-
-                let packages_list = [];
-                try 
+                try
                 {
-                    // list of available packages
-                    packages_list = await $.getJSON("ros/manager/list_packages",
+                    const selected_package = node.package;
+
+                    const packages_list = await $.getJSON("ros/manager/list_packages",
                     {
                         manager_id: RED.nodes.node(node.manager).manager_id,
                     });
-                } 
+
+                    package_dropdown.empty();
+
+                    for (const package of packages_list)
+                    {
+                        const selected = (package === selected_package) ? "selected" : "";
+                        package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    }
+
+                }
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
-                        active_div.hide();
-                        inactive_div.show();
-                    }
-                }
+                        interface_offline_alert.addClass("open");
 
-                for (const package of packages_list)
-                {
-                    const selected = (package === selected_package) ? "selected" : "";
-                    package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                        package_dropdown.prop("disabled", true);
+                        package_dropdown.append(`<option value="${node.package}" selected>${node.package}</option>`);
+                    }
                 }
             }
 
             async function populate_launch_file_dropdown()
             {
-                const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
-
-                launch_file_dropdown.empty();
-
-                const selected_launch = node.launch_name;
-
-                let launch_file_list = [];
                 try 
                 {
-                    launch_file_list = await $.getJSON("ros/manager/list_launch_files",
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_launch = node.launch_name;
+
+                    const launch_file_list = await $.getJSON("ros/manager/list_launch_files",
                     {
                         manager_id: RED.nodes.node(node.manager).manager_id,
-                        package: selected_package,
+                        package_name: selected_package,
                     });
+
+                    launch_file_dropdown.empty();
+
+                    for (const launch_file of launch_file_list)
+                    {
+                        const selected = (launch_file === selected_launch) ? "selected" : "";
+                        launch_file_dropdown.append(`<option value="${launch_file}" ${selected}>${launch_file}</option>`);
+                    }
+
                 } 
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
-                        active_div.hide();
-                        inactive_div.show();
-                    }
-                }
+                        interface_offline_alert.addClass("open");
 
-                for (const launch_file of launch_file_list)
-                {
-                    const selected = (launch_file === selected_launch) ? "selected" : "";
-                    launch_file_dropdown.append(`<option value="${launch_file}" ${selected}>${launch_file}</option>`);
+                        launch_file_dropdown.prop("disabled", true);
+                        launch_file_dropdown.append(`<option value="${node.launch_name}" selected>${node.launch_name}</option>`);
+                    }
                 }
             }
 
-            $('#node-input-args_container').css('min-height','120px').css('min-width','450px').editableList(
+            async function populate_config_file_dropdown()
             {
-                addItem: function(container, i, opt)
+                try 
                 {
-                    const arg = opt || {name: "", value: ""};
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_config = node.config_name;
 
-                    const row = $('<div/>')
-                        .css({display: "flex", gap: "6px", alignItems: "center"})
-                        .appendTo(container);
+                    const config_file_list = await $.getJSON("ros/manager/list_launch_files",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package_name: selected_package,
+                    });
 
-                    const key_input = $("<input/>", {
-                        type: "text",
-                        class: "node-input-arg-name",
-                        placeholder: "key"
-                    }).css({flex: "1"}).appendTo(row).val(arg.name);
+                    config_file_dropdown.empty();
 
-                    const value_input = $("<input/>", {
-                        type: "text",
-                        class: "node-input-arg-value",
-                        placeholder: "val"
-                    }).css({flex: "1"}).appendTo(row).val(arg.value);
-                    
-                },
-                removable: true,
-            });
+                    for (const config_file of config_file_list)
+                    {
+                        const selected = (config_file === selected_config) ? "selected" : "";
+                        config_file_dropdown.append(`<option value="${config_file}" ${selected}>${config_file}</option>`);
+                    }
+                } 
+                catch (error) 
+                {
+                    if (error.responseJSON.state == "inactive") {
+                        interface_offline_alert.addClass("open");
+
+                        config_file_dropdown.prop("disabled", true);
+                        config_file_dropdown.append(`<option value="${node.config_name}" selected>${node.config_name}</option>`);
+                    }
+                }
+            }
 
             async function populate_arguments_editable_list()
             {
-                const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
-                const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
+                args_editable_list.editableList(
+                {
+                    addItem: function(container, i, opt)
+                    {
+                        const arg = opt || {name: "", value: ""};
 
-                let launch_file_path = "";
-                let arguments_dict = {};
+                        const row = $("<div/>", {
+                            class: "editable_list_row"
+                        }).appendTo(container);
+
+                        const key_input = $("<input/>", {
+                            type: "text",
+                            class: "node-input-arg-name",
+                            placeholder: "key"
+                        }).appendTo(row).val(arg.name);
+
+                        const value_input = $("<input/>", {
+                            type: "text",
+                            class: "node-input-arg-value",
+                            placeholder: "val"
+                        }).appendTo(row).val(arg.value);
+                    },
+
+                    removable: true,
+                });
+
                 try 
                 {
-                    launch_file_path = await $.getJSON("ros/manager/get_full_launch_path",
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
+
+                    const arguments_dict = await $.getJSON("ros/manager/list_launch_arguments",
                     {
                         manager_id: RED.nodes.node(node.manager).manager_id,
                         package_name: selected_package,
                         launch_file_name: selected_launch_file_name,
                     });
 
-                    arguments_dict = await $.getJSON("ros/manager/get_launch_arguments",
+                    args_editable_list.editableList("empty");
+
+                    for(const [arg, def] of Object.entries(arguments_dict))
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
-                        launch_file_path: launch_file_path,
-                    });
+                        const value = node.launch_args[arg];
+
+                        if (value) {
+                            args_editable_list.editableList("addItem", {name: arg, value: value});
+                        }
+                        else {
+                            args_editable_list.editableList("addItem", {name: arg, value: def});
+                        }
+                    }
                 } 
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
-                        active_div.hide();
-                        inactive_div.show();
-                    }
-                }
+                        interface_offline_alert.addClass("open");
 
-                $("#node-input-args_container").editableList('empty');
-                for(const [arg, def] of Object.entries(arguments_dict))
-                {
-                    const value = node.launch_args[arg];
-
-                    if (value) {
-                        $("#node-input-args_container").editableList('addItem', {name: arg, value: value});
-                    }
-                    else {
-                        $("#node-input-args_container").editableList('addItem', {name: arg, value: def});
+                        args_editable_list.parent().parent().find(".red-ui-editableList-addButton").prop("disabled", true);
                     }
                 }
             }
 
             async function populate_launch_file_contents()
             {
-                const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
-                const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
+                node.launch_editor = RED.editor.createEditor({
+                    id: "node-input-launch_content",
+                    mode: "ace/mode/python",
+                });
 
-                let launch_file_path;
-                let launch_file_content;
                 try 
                 {
-                    launch_file_path = await $.getJSON("ros/manager/get_full_launch_path",
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
+
+                    const file_content = await $.getJSON("ros/manager/read_file",
                     {
                         manager_id: RED.nodes.node(node.manager).manager_id,
                         package_name: selected_package,
-                        launch_file_name: selected_launch_file_name,
+                        file_name: selected_launch_file_name,
                     });
 
-                    launch_file_content = await $.getJSON("/ros/manager/get_file_content",
+                    node.launch_editor.setValue(file_content, -1);
+                }
+                catch (error) 
+                {
+                    if (error.responseJSON.state == "inactive") {
+                        interface_offline_alert.addClass("open");
+
+                        save_launch_btn.prop("disabled", true);
+                        node.launch_editor.setReadOnly(true);
+                    }
+                }
+            }
+
+            async function populate_config_file_contents()
+            {
+                node.config_editor = RED.editor.createEditor({
+                    id: "node-input-config_content",
+                    mode: "ace/mode/yaml",
+                });
+
+                try 
+                {
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_config_file_name = config_file_dropdown.val() ? config_file_dropdown.val() : node.config_name;
+
+                    const file_content = await $.getJSON("ros/manager/read_file",
                     {
                         manager_id: RED.nodes.node(node.manager).manager_id,
-                        launch_file_path: launch_file_path,
+                        package_name: selected_package,
+                        file_name: selected_config_file_name,
                     });
+
+                    node.config_editor.setValue(file_content, -1);
                 } 
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
-                        active_div.hide();
-                        inactive_div.show();
+                        interface_offline_alert.addClass("open");
+
+                        save_config_btn.prop("disabled", true);
+                        node.config_editor.setReadOnly(true);
                     }
                 }
-
-                node.editor = RED.editor.createEditor({
-                    id: "node-input-launch_content",
-                    mode: "python",
-                    value: launch_file_content
-                });
             }
 
-            active_div.show();
-            inactive_div.hide();
+            async function write_back_launch_file_content()
+            {
+                try 
+                {
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
+                    const launch_content = node.launch_editor.getValue();
 
+                    return_value = await $.getJSON("ros/manager/write_file",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package_name: selected_package,
+                        file_name: selected_launch_file_name,
+                        file_content: launch_content,
+                    });
+
+                    if (return_value == "0")
+                    {
+                        save_success_alert.addClass("open");
+                        setTimeout(() => {
+                            save_success_alert.removeClass("open");
+                        }, 2000);
+                    }
+                    else
+                    {
+                        save_success_alert.addClass("open");
+                        setTimeout(() => {
+                            save_success_alert.removeClass("open");
+                        }, 2000);
+                    }
+                } 
+                catch (error) 
+                {
+
+                }
+            }
+
+            async function write_back_config_file_content()
+            {
+                try 
+                {
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_config_file_name = config_file_dropdown.val() ? config_file_dropdown.val() : node.config_name;
+                    const config_content = node.config_editor.getValue();
+
+                    return_value = await $.getJSON("ros/manager/write_file",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package_name: selected_package,
+                        file_name: selected_config_file_name,
+                        file_content: config_content,
+                    });
+
+                    if (return_value == "0")
+                    {
+                        save_success_alert.addClass("open");
+                        setTimeout(() => {
+                            save_success_alert.removeClass("open");
+                        }, 2000);
+                    }
+                    else
+                    {
+                        save_success_alert.addClass("open");
+                        setTimeout(() => {
+                            save_success_alert.removeClass("open");
+                        }, 2000);
+                    }
+                } 
+                catch (error) 
+                {
+
+                }
+            }
+
+            build_tabs();
             await populate_package_dropdown();
             await populate_launch_file_dropdown();
+            await populate_config_file_dropdown();
             await populate_arguments_editable_list();
             await populate_launch_file_contents();
+            await populate_config_file_contents();
 
             package_dropdown.on("change", populate_launch_file_dropdown);
+            package_dropdown.on("change", populate_config_file_dropdown);
             launch_file_dropdown.on("change", populate_arguments_editable_list);
             launch_file_dropdown.on("change", populate_launch_file_contents);
+            config_file_dropdown.on("change", populate_config_file_contents);
+            save_launch_btn.on("click", write_back_launch_file_content)
+            save_config_btn.on("click", write_back_config_file_content)
         },
 
-        oneditsave: function()
+        oneditsave: async function()
         {
             const node = this;
 
-            const args = $("#node-input-args_container").editableList('items');
-            node.launch_args = {};
+            const package_dropdown = $("#node-input-package");
+            const launch_file_dropdown = $("#node-input-launch_name");
+            const config_file_dropdown = $("#node-input-config_name");
+            const args_editable_list = $("#node-input-args_container");
 
-            for (row of args)
+            function save_args()
             {
-                const name = row.find('.node-input-arg-name').val();
-                const value = row.find('.node-input-arg-value').val();
+                const args = args_editable_list.editableList("items");
+                node.launch_args = {};
 
-                if (name) {
-                    node.launch_args[name] = value;
+                for (row of args)
+                {
+                    const name = row.find(".node-input-arg-name").val();
+                    const value = row.find(".node-input-arg-value").val();
+
+                    if (name) {
+                        node.launch_args[name] = value;
+                    }
                 }
             }
 
-            node.launch_content = node.editor.getValue();
-            node.editor.destroy();
-            delete node.editor;
+            function save_launch_file_content()
+            {
+                node.launch_content = node.launch_editor.getValue();
+                node.launch_editor.destroy();
+                delete node.launch_editor;
+            }
+
+            function save_config_file_content()
+            {
+                node.config_content = node.config_editor.getValue();
+                node.config_editor.destroy();
+                delete node.config_editor;
+            }
+
+            save_args();
+            save_launch_file_content();
+            save_config_file_content();
         },
 
         oneditcancel: function() 
         {
             const node = this;
 
-            node.editor.destroy();
-            delete node.editor;
-        },
+            node.launch_editor.destroy();
+            delete node.launch_editor;
 
+            node.config_editor.destroy();
+            delete node.config_editor;
+        },
     });
 
 </script>
 
 <script type="text/html" data-template-name="ros-launch">
-    
-    <div id="inactive" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: #555;">
-        <i class="fa fa-plug" style="font-size: 80px; margin-bottom: 20px; color: #e74c3c;"></i>
-        <div style="font-size: 24px; font-weight: bold;">ROS2 interface is offline</div>
+
+    <style>
+        .edit-dialog-alert {
+            display: flex;
+            flex-direction: row; 
+            justify-content: center; 
+            border: solid 1px tomato; 
+            border-radius: 5px; 
+            padding: 5px;
+
+            max-height: 20px;
+            transition-duration: 0.5s;
+        }
+
+        .edit-dialog-alert:not(.open) {
+            overflow: hidden;
+            max-height: 0;
+            padding: 0;
+            border-width: 0;
+            margin: 0;
+
+            transition-duration: 0.5s;
+        }
+
+        .edit-dialog-alert i {
+            font-size: large;
+            color: tomato;
+            margin-right: 10px;
+        }
+
+        .edit-dialog-alert span {
+            font-size: large; 
+            font-weight: bold;
+        }
+
+        .editable_list_row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #node-input-arg-name {
+            flex: 1;
+        }
+
+        #node-input-arg-value {
+            flex: 1;
+        }
+
+    </style>
+
+    <div id="interface-offline-alert" class="form-row edit-dialog-alert">
+        <i class="fa fa-plug"></i>
+        <span>ROS2 Interface is offline</span>
     </div>
 
-    <div id="active">
+    <div id="save-success-alert" class="form-row edit-dialog-alert">
+        <i class="fa fa-check"></i>
+        <span>File successfully saved</span>
+    </div>
 
-        <div class="form-row">
-            <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
-            <input type="text" id="node-input-manager">
+    <div id="save-failed-alert" class="form-row edit-dialog-alert">
+        <i class="fa fa-times"></i>
+        <span>Failed to save file</span>
+    </div>
+
+    <div class="form-row">
+        <ul id="tabs-header"></ul>
+    </div>
+
+    <div id="tabs-content">
+
+        <div id="settings_tab">
+
+            <div class="form-row">
+                <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
+                <input id="node-input-manager" type="text">
+            </div>
+
+            <div class="form-row">
+                <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
+                <select id="node-input-package" style="width: 70%;"></select>
+            </div>
+
+            <div class="form-row">
+                <label for="node-input-launch_name"><i class="fa fa-file"></i> Launch</label>
+                <select id="node-input-launch_name" style="width: 70%;"></select>
+            </div>
+
+            <div class="form-row">
+                <label for="node-input-config_name"><i class="fa fa-file"></i> Config</label>
+                <select id="node-input-config_name" style="width: 70%;"></select>
+            </div>
+
+            <div class="form-row">
+                <label for="node-input-args_container" style="vertical-align: top;"><i class="fa fa-list"></i> Arguments</label>
+                <div style="display: inline-block; width: 70%;">
+                    <ol id="node-input-args_container"></ol>
+                </div>
+            </div>
+
         </div>
 
-        <div class="form-row">
-            <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
-            <select id="node-input-package" placeholder="Package"></select>
+        <div id="launch_tab">
+
+            <div class="form-row">
+                <button id="save_launch_btn" class="red-ui-button">Save Changes</button>
+            </div>
+
+            <div class="form-row">
+                <div id="node-input-launch_content" class="node-text-editor" style="height: 70vh;"></div>
+            </div>
+        
         </div>
 
-        <div class="form-row">
-            <label for="node-input-launch_name"><i class="fa fa-file"></i> Launch</label>
-            <select id="node-input-launch_name" placeholder="Launch"></select>
+        <div id="config_tab">
+
+            <div class="form-row">
+                <button id="save_config_btn" class="red-ui-button">Save Changes</button>
+            </div>
+
+            <div class="form-row">
+                <div id="node-input-config_content" class="node-text-editor" style="height: 70vh;"></div>
+            </div>
+
         </div>
 
-        <div class="form-row">
-            <label for="node-input-args_container"><i class="fa fa-list"></i> Arguments</label>
-            <ol id="node-input-args_container"></ol>
-        </div>
-
-        <div class="form-row">
-            <label for="node-input-launch_content"><i class="fa fa-bars"></i> File</label>
-            <div class="node-text-editor" style="height: 40vh; min-height:10vh;" id="node-input-launch_content"></div>
-        </div>
-    
     </div>
 
 </script>
