@@ -7,17 +7,13 @@
       "local_endpoints": "endpoints/local_endpoints.js",
       "manage_endpoints": "endpoints/manager_endpoints.js",
       "ros-interface": "nodes/interface/ros-interface.js",
+      "manager-config": "nodes/manager-config/manager-config.js",
       "ros-node": "nodes/node/ros-node.js",
       "ros-launch": "nodes/launch/ros-launch.js",
-      "ros-show-unmanaged": "nodes/ros-show/ros-show.js",
-      "ros-node-um": "nodes/unmanaged/node/ros-node-um.js",
-      "manager-config": "nodes/manager-config/manager-config.js",
       "publisher": "nodes/ros-publisher/ros-publisher.js",
       "subscriber": "nodes/ros-subscriber/ros-subscriber.js"
     }
   },
   "dependencies": {
-    "axios": "^1.10.0",
-    "is-web-api": "^1.0.1"
   }
 }
