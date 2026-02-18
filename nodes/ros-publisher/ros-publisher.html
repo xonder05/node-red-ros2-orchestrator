@@ -58,7 +58,7 @@
 
                 try 
                 {
-                    node.topics_dictionary = await $.getJSON("ros/local/get_topics");
+                    node.topics_dictionary = await $.getJSON("ros/local/list_topics");
                 } 
                 catch (error) 
                 {
@@ -75,6 +75,7 @@
                     const packages_list = await $.getJSON("ros/local/list_packages");
 
                     package_dropdown.empty()
+                    package_dropdown.prop("disabled", false);
 
                     for (const package of packages_list)
                     {
@@ -84,7 +85,7 @@
                 } 
                 catch (error) 
                 {
-                    
+                    package_dropdown.prop("disabled", true);
                 }
             }
 
@@ -101,6 +102,7 @@
                     });
 
                     type_dropdown.empty();
+                    type_dropdown.prop("disabled", false);
 
                     for (const type of types_list)
                     {
@@ -110,7 +112,7 @@
                 } 
                 catch (error) 
                 {
-                    
+                    type_dropdown.prop("disabled", true);
                 }
             }
 

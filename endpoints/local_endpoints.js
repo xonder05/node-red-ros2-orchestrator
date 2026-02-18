@@ -1,3 +1,13 @@
+/**
+ * @file local_endpoints.js
+ * @author Daniel Onderka (xonder05)
+ * @date 01/2026
+ * 
+ * This file contains endpoints that frontend (Node-RED Editor) can call to get data.
+ * Most significant nodes using these endpoints are ros-publisher and ros-subscriber.
+ * The keyword "local" implies that all data these endpoints provide come from device running Node-RED backend (Runtime)  
+ */
+
 module.exports = function(RED)
 {
     const child_process = require("child_process");
@@ -20,52 +30,71 @@ module.exports = function(RED)
         });
     }
 
+    RED.httpAdmin.get("/ros/local/list_topics",
+    function (req, res) 
+    {
+        child_process.exec("python3 ./scripts/list_topics.py", 
+        function (error, stdout, stderr)
+        {
+            try 
+            {
+                if (error) {
+                    throw Error("Script execution failed");
+                } 
+                
+                const topics_and_types = JSON.parse(stdout);
+                res.status(200).json(topics_and_types);
+            } 
+            catch (error) 
+            {
+                res.status(500).json({error});
+            }
+        });
+    });
+
     RED.httpAdmin.get("/ros/local/list_packages",
     function (req, res) 
     {
-        const cmd = `python3 -c "import json; from ament_index_python.packages import get_packages_with_prefixes; print(json.dumps(list(get_packages_with_prefixes().keys())))"`;
-
-        child_process.exec(cmd, (error, stdout, stderr) => 
+        child_process.exec("python3 ./scripts/list_packages.py", 
+        function (error, stdout, stderr)
         {
-            if (error) {
-                console.error(`Exec error: ${error.message}`);
-                return res.status(500).json({ error: "Python execution failed" });
-            }
+            try 
+            {
+                if (error) {
+                    throw Error("Script execution failed");
+                }
 
-            try {
                 const packages = JSON.parse(stdout);
-                res.json(packages);
-            }
-            catch (err) {
-                console.error("JSON parse error:", err);
-                res.status(500).json({ error: "Invalid JSON output" });
+                res.status(200).json(packages);
+            } 
+            catch (error) 
+            {
+                res.status(500).json({error});
             }
         });
     });
 
-    RED.httpAdmin.get("/ros/local/list_interfaces", 
+    RED.httpAdmin.get("/ros/local/list_types", 
     function (req, res) 
     {
-        const selectedPackage = req.query.package;
+        const selected_package = req.query.package;
 
-        const cmd = `python3 -c "import json; from rosidl_runtime_py import get_message_interfaces; print(json.dumps(get_message_interfaces(['${selectedPackage}'])['${selectedPackage}']))"`;
-
-        child_process.exec(cmd, (error, stdout, stderr) => 
+        child_process.exec(`python3 ./scripts/list_types.py ${selected_package}`, 
+        function (error, stdout, stderr)
         {
-            if (error) {
-                console.error(`Exec error: ${error.message}`);
-                return res.status(500).json({ error: "Python execution failed" });
-            }
+            try 
+            {
+                if (error) {
+                    throw Error("Script execution failed");
+                }
 
-            try {
-                const packages = JSON.parse(stdout);
-                res.json(packages);
-            } 
-            catch (err) {
-                console.error("JSON parse error:", err);
-                res.status(500).json({ error: "Invalid JSON output" });
+                const interfaces = JSON.parse(stdout);
+                res.status(200).json(interfaces);
+            }
+            catch (error) 
+            {
+                res.status(500).json({error});
             }
         });
     });
-
 }
