@@ -14,7 +14,7 @@
         color: "#E2D96E",
         defaults: {
             manager: {value: "", type: "manager-config"},
-            package: {value: ""},
+            package_name: {value: ""},
             launch_name: {value: ""},
             config_name: {value: ""},
             launch_args: {value: {}},
@@ -26,13 +26,21 @@
             return this.launch_name || "ros-launch";
         },
 
+        /**
+         * Edit preparing is separated into helper function.
+         * One per edit field. All of the helpers follow the same structure.
+         * If they use some more complicated field they start by initializing it (tabs, editableList, editor). 
+         * Than a try catch block follows. In the try part, backend call is done, data are fetched and loaded into the field.
+         * If the call fails (usually because ros2_interface is offline), catch disables the field
+         * and if there is already saved value for the field than it is inserted.
+         */
         oneditprepare: async function () 
         {
             const node = this;
 
             const interface_offline_alert = $("#interface-offline-alert");
             const manager_dropdown = $("#node-input-manager");
-            const package_dropdown = $("#node-input-package");
+            const package_dropdown = $("#node-input-package_name");
             const launch_file_dropdown = $("#node-input-launch_name");
             const config_file_dropdown = $("#node-input-config_name");
             const args_editable_list = $("#node-input-args_container");
@@ -68,7 +76,7 @@
             {
                 try
                 {
-                    const selected_package = node.package;
+                    const selected_package = node.package_name;
 
                     const packages_list = await $.getJSON("ros/manager/list_packages",
                     {
@@ -90,7 +98,7 @@
                         interface_offline_alert.addClass("open");
 
                         package_dropdown.prop("disabled", true);
-                        package_dropdown.append(`<option value="${node.package}" selected>${node.package}</option>`);
+                        package_dropdown.append(`<option value="${node.package_name}" selected>${node.package_name}</option>`);
                     }
                 }
             }
@@ -99,7 +107,7 @@
             {
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch = node.launch_name;
 
                     const launch_file_list = await $.getJSON("ros/manager/list_launch_files",
@@ -132,7 +140,7 @@
             {
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_config = node.config_name;
 
                     const config_file_list = await $.getJSON("ros/manager/list_launch_files",
@@ -175,13 +183,13 @@
                         const key_input = $("<input/>", {
                             type: "text",
                             class: "node-input-arg-name",
-                            placeholder: "key"
+                            placeholder: "argument"
                         }).appendTo(row).val(arg.name);
 
                         const value_input = $("<input/>", {
                             type: "text",
                             class: "node-input-arg-value",
-                            placeholder: "val"
+                            placeholder: "value"
                         }).appendTo(row).val(arg.value);
                     },
 
@@ -190,7 +198,7 @@
 
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
 
                     const arguments_dict = await $.getJSON("ros/manager/list_launch_arguments",
@@ -226,14 +234,17 @@
 
             async function populate_launch_file_contents()
             {
-                node.launch_editor = RED.editor.createEditor({
-                    id: "node-input-launch_content",
-                    mode: "ace/mode/python",
-                });
+                if (!node.launch_editor)
+                {
+                    node.launch_editor = RED.editor.createEditor({
+                        id: "node-input-launch_content",
+                        mode: "ace/mode/python",
+                    });
+                }
 
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
 
                     const file_content = await $.getJSON("ros/manager/read_file",
@@ -258,14 +269,17 @@
 
             async function populate_config_file_contents()
             {
-                node.config_editor = RED.editor.createEditor({
-                    id: "node-input-config_content",
-                    mode: "ace/mode/yaml",
-                });
+                if (!node.config_editor)
+                {
+                    node.config_editor = RED.editor.createEditor({
+                        id: "node-input-config_content",
+                        mode: "ace/mode/yaml",
+                    });
+                }
 
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_config_file_name = config_file_dropdown.val() ? config_file_dropdown.val() : node.config_name;
 
                     const file_content = await $.getJSON("ros/manager/read_file",
@@ -292,7 +306,7 @@
             {
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
                     const launch_content = node.launch_editor.getValue();
 
@@ -329,7 +343,7 @@
             {
                 try 
                 {
-                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_config_file_name = config_file_dropdown.val() ? config_file_dropdown.val() : node.config_name;
                     const config_content = node.config_editor.getValue();
 
@@ -379,6 +393,9 @@
             save_config_btn.on("click", write_back_config_file_content)
         },
 
+        /**
+         * This function is used primarily because widgets (editableList, editor) need to manually extract and save values
+         */
         oneditsave: async function()
         {
             const node = this;
@@ -404,16 +421,14 @@
                 }
             }
 
-            function save_launch_file_content()
+            function destroy_launch_editor()
             {
-                node.launch_content = node.launch_editor.getValue();
                 node.launch_editor.destroy();
                 delete node.launch_editor;
             }
 
-            function save_config_file_content()
+            function destroy_config_editor()
             {
-                node.config_content = node.config_editor.getValue();
                 node.config_editor.destroy();
                 delete node.config_editor;
             }
@@ -427,11 +442,20 @@
         {
             const node = this;
 
-            node.launch_editor.destroy();
-            delete node.launch_editor;
+            function destroy_launch_editor()
+            {
+                node.launch_editor.destroy();
+                delete node.launch_editor;
+            }
 
-            node.config_editor.destroy();
-            delete node.config_editor;
+            function destroy_config_editor()
+            {
+                node.config_editor.destroy();
+                delete node.config_editor;
+            }
+
+            save_launch_file_content();
+            save_config_file_content();
         },
     });
 
@@ -490,17 +514,17 @@
     </style>
 
     <div id="interface-offline-alert" class="form-row edit-dialog-alert">
-        <i class="fa fa-plug"></i>
+        <i class="fa fa-fw fa-plug"></i>
         <span>ROS2 Interface is offline</span>
     </div>
 
     <div id="save-success-alert" class="form-row edit-dialog-alert">
-        <i class="fa fa-check"></i>
+        <i class="fa fa-fw fa-check"></i>
         <span>File successfully saved</span>
     </div>
 
     <div id="save-failed-alert" class="form-row edit-dialog-alert">
-        <i class="fa fa-times"></i>
+        <i class="fa fa-fw fa-times"></i>
         <span>Failed to save file</span>
     </div>
 
@@ -513,27 +537,27 @@
         <div id="settings_tab">
 
             <div class="form-row">
-                <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
+                <label for="node-input-manager"><i class="fa fa-fw fa-server"></i> Manager</label>
                 <input id="node-input-manager" type="text">
             </div>
 
             <div class="form-row">
-                <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
-                <select id="node-input-package" style="width: 70%;"></select>
+                <label for="node-input-package_name"><i class="fa fa-fw fa-cubes"></i> Package</label>
+                <select id="node-input-package_name" style="width: 70%;"></select>
             </div>
 
             <div class="form-row">
-                <label for="node-input-launch_name"><i class="fa fa-file"></i> Launch</label>
+                <label for="node-input-launch_name"><i class="fa fa-fw fa-rocket"></i> Launch</label>
                 <select id="node-input-launch_name" style="width: 70%;"></select>
             </div>
 
             <div class="form-row">
-                <label for="node-input-config_name"><i class="fa fa-file"></i> Config</label>
+                <label for="node-input-config_name"><i class="fa fa-fw fa-sliders"></i> Config</label>
                 <select id="node-input-config_name" style="width: 70%;"></select>
             </div>
 
             <div class="form-row">
-                <label for="node-input-args_container" style="vertical-align: top;"><i class="fa fa-list"></i> Arguments</label>
+                <label for="node-input-args_container" style="vertical-align: top;"><i class="fa fa-fw fa-cogs"></i> Arguments</label>
                 <div style="display: inline-block; width: 70%;">
                     <ol id="node-input-args_container"></ol>
                 </div>
@@ -569,6 +593,49 @@
 
 </script>
 
-<script type="text/html" data-help-name="ros-launch">
-    <p>Node description</p>
+<script type="text/markdown" data-help-name="ros-launch">
+
+Allows you to edit and orchestrate ROS2 launch and config files.
+
+### Inputs
+
+: payload (string) : "start" or "stop" command
+
+### Outputs
+
+1. State
+: payload (string) : serialized version of the state shown by Editor
+
+2. Terminal output
+: payload (string) : combined stdout and stderr output of the running launch file
+
+### Details
+
+The goal of this node is to bring functionality of the ROS2 launch system into Node-RED.
+That is accomplished by allowing you to edit both launch and configuration files directly from 
+Node-RED. Orchestration part is handled after deployment by sending commands to this node's input 
+and getting state and log from its outputs. 
+
+#### Edit dialog
+
+Most of the properties in edit dialog require ROS2 Interface to be running, for more information 
+see ros2-interface node.
+
+- Manager - This is a configuration node selector, for more information see manager-config node.
+- Package - This dropdown is automatically filled with all packages that are installed on the device where previously selected Manager is running.
+- Launch - This dropdown is automatically filled with all launch files that are installed as part of the previously selected package.
+- Config - This dropdown is automatically filled with all config files that are installed as part of the previously selected package.
+- Arguments - This key value list is automatically filled with arguments defined by previously selected launch file.
+
+#### Editing
+
+Launch and Config Editor tabs allow you to edit ROS2 launch and config files directly from Node-RED.
+To prevent unintended changes to the files, using the Done button does not automatically save anything 
+and therefore upon exiting the dialog all changes are lost.
+If you want to save them, you must use the dedicated Save Changes button beforehand.
+
+#### Runtime
+
+Runtime part is pretty well explained by inputs and outputs sections.
+
 </script>

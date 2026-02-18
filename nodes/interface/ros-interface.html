@@ -8,9 +8,9 @@
 
     RED.nodes.registerType("ros-interface", {
         category: "ROS2",
-        color: "#E2D96E",
+        color: "#C7E9C0",
         defaults: {
-            start: {value: ""},
+            start: {value: "deploy"},
         },
         inputs: 1,
         outputs: 1,
@@ -21,17 +21,11 @@
 
         oneditprepare: async function () 
         {
-            $("#node-input-start").typedInput({
-                types: [
-                    {
-                        value: "start_mode",
-                        options: [
-                            { value: "deploy", label: "Deploy"},
-                            { value: "input", label: "Input"},
-                        ]
-                    }
-                ]
-            })
+            const node = this;
+
+            const start_dropdown = $("#node-input-start");
+
+            start_dropdown.val(node.start);
         }
     });
 
@@ -40,12 +34,34 @@
 <script type="text/html" data-template-name="ros-interface">
 
     <div class="form-row">
-        <label for="node-input-start"><i class="fa fa-file"></i> Start bridge on</label>
-        <input type="text" id="node-input-start">
+
+        <label for="node-input-start"><i class="fa fa-play-circle"></i> Start on</label>
+        <select id="node-input-start" style="width: 70%;">
+            <option value="deploy">Deploy</option>
+            <option value="input">Input</option>
+        </select>
+
     </div>
 
 </script>
 
-<script type="text/html" data-help-name="ros-interface">
-    <p>Node description</p>
+<script type="text/markdown" data-help-name="ros-interface">
+
+Manages state of ros2_interface.
+
+### Inputs
+
+: payload (string) : "start" or "stop" command
+
+### Outputs
+
+1. State
+: payload (string) : serialized version of the state shown by Editor
+
+### Details
+This node aims to expose state and control of ros2_interface to the user.
+
+This node is an **essential dependency** for all other nodes from this module, 
+because without it they won't be able to communicate with ROS2.
+
 </script>

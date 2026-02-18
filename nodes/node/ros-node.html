@@ -13,8 +13,10 @@
         color: "#F3B567",
         defaults: {
             manager: {value: "", type: "manager-config"},
-            package: {value:""},
-            node: {value:""},
+            package_name: {value: ""},
+            node_name: {value: ""},
+            runtime_node_name: {value: ""},
+            namespace: {value: ""},
             params: {value: {}},
             remaps: {value: {}},
         },
@@ -22,153 +24,201 @@
         outputs: 2,
         icon: "file.svg",
         label: function() {
-            return this.node || "ros-node";
+            return this.node_name || "ros-node";
         },
 
         oneditprepare: async function () 
         {
             const node = this;
 
-            const package_dropdown = $("#node-input-package");
-            const node_select = $("#node-input-node");
+            const interface_offline_alert = $("#interface-offline-alert");
+            const package_dropdown = $("#node-input-package_name");
+            const node_dropdown = $("#node-input-node_name");
+            const params_editable_list = $("#node-input-params_container");
+            const remaps_editable_list = $("#node-input-remaps_container");
 
             async function populate_package_dropdown() 
             {
-                package_dropdown.empty();
-
-                // make sure to not erase previously selected value
-                const selected_package = node.package;
-
-                const packages_list = await $.getJSON("/ros/manager/list_packages",
+                try 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                });
+                    const selected_package = node.package_name;
 
-                for (const package of packages_list)
+                    const packages_list = await $.getJSON("/ros/manager/list_packages",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                    });
+
+                    package_dropdown.empty();
+
+                    for (const package of packages_list)
+                    {
+                        const selected = (package === selected_package) ? "selected" : "";
+                        package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    }
+                } 
+                catch (error) 
                 {
-                    const selected = (package === selected_package) ? "selected" : "";
-                    package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    if (error.responseJSON.state == "inactive") {
+                        interface_offline_alert.addClass("open");
+
+                        package_dropdown.prop("disabled", true);
+                        package_dropdown.append(`<option value="${node.package_name}" selected>${node.package_name}</option>`);
+                    }
                 }
             }
 
             async function populate_node_dropdown(params) 
             {
-                const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
-
-                node_select.empty();
-
-                const selected_node = node.node;
-
-                const node_list = await $.getJSON("ros/manager/list_nodes",
+                try 
                 {
-                    manager_id: RED.nodes.node(node.manager).manager_id,
-                    package: selected_package,
-                });
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
+                    const selected_node = node.node_name;
 
-                for (const node of node_list) 
+                    const node_list = await $.getJSON("ros/manager/list_nodes",
+                    {
+                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        package_name: selected_package,
+                    });
+
+                    node_dropdown.empty();
+
+                    for (const node of node_list) 
+                    {
+                        const selected = (node === selected_node) ? "selected" : "";
+                        node_dropdown.append(`<option value="${node}" ${selected}>${node}</option>`);
+                    } 
+                } 
+                catch (error) 
                 {
-                    const selected = (node === selected_node) ? "selected" : "";
-                    node_select.append(`<option value="${node}" ${selected}>${node}</option>`);
+                    if (error.responseJSON.state == "inactive") {
+                        interface_offline_alert.addClass("open");
+
+                        node_dropdown.prop("disabled", true);
+                        node_dropdown.append(`<option value="${node.node_name}" selected>${node.node_name}</option>`);
+                    }
                 }
             }
 
-            $('#node-input-params_container').css('min-height','120px').css('min-width','450px').editableList(
+            async function populate_params_editable_list()
             {
-                addItem: function(container, i, opt)
+                params_editable_list.editableList(
                 {
-                    const param = opt || {name: "", value: ""};
+                    addItem: function(container, i, opt)
+                    {
+                        const param = opt || {name: "", value: ""};
 
-                    const row = $('<div/>')
-                        .css({display: "flex", gap: "6px", alignItems: "center"})
-                        .appendTo(container);
+                        const row = $("<div/>", {
+                            class: "editable_list_row"
+                        }).appendTo(container);
 
-                    const key_input = $("<input/>", {
-                        type: "text",
-                        class: "node-input-param-name",
-                        placeholder: "key"
-                    }).css({flex: "1"}).appendTo(row).val(param.name);
+                        const key_input = $("<input/>", {
+                            type: "text",
+                            class: "node-input-param-name",
+                            placeholder: "parameter"
+                        }).appendTo(row).val(param.name);
 
-                    const value_input = $("<input/>", {
-                        type: "text",
-                        class: "node-input-param-value",
-                        placeholder: "val"
-                    }).css({flex: "1"}).appendTo(row).val(param.value);
-                    
-                },
-                removable: true,
-            });
+                        const value_input = $("<input/>", {
+                            type: "text",
+                            class: "node-input-param-value",
+                            placeholder: "value"
+                        }).appendTo(row).val(param.value);
+                        
+                    },
 
-            $('#node-input-remaps_container').css('min-height','120px').css('min-width','450px').editableList(
-            {
-                addItem: function(container, i, opt)
+                    removable: true,
+                });
+
+                for(const [name, value] of Object.entries(node.params))
                 {
-                    const remap = opt || {t1: "", t2: ""};
+                    params_editable_list.editableList("addItem", {name: name, value: value});
+                }
 
-                    const row = $('<div/>')
-                        .css({display: "flex", gap: "6px", alignItems: "center"})
-                        .appendTo(container);
-
-                    const key_input = $("<input/>", {
-                        type: "text",
-                        class: "node-input-remap-t1",
-                        placeholder: "key"
-                    }).css({flex: "1"}).appendTo(row).val(remap.t1);
-
-                    const value_input = $("<input/>", {
-                        type: "text",
-                        class: "node-input-remap-t2",
-                        placeholder: "val"
-                    }).css({flex: "1"}).appendTo(row).val(remap.t2);
-                    
-                },
-                removable: true,
-            });
-
-            // on package change update nodes list
-            package_dropdown.on("change", populate_node_dropdown);
-
-            await populate_package_dropdown();
-
-            for(const [name, value] of Object.entries(node.params))
-            {
-                $("#node-input-params_container").editableList('addItem', {name: name, value: value});
             }
 
-            for(const [t1, t2] of Object.entries(node.remaps))
+            async function populate_remaps_editable_list()
             {
-                $("#node-input-remaps_container").editableList('addItem', {t1: t1, t2: t2});
-            }  
+                remaps_editable_list.editableList(
+                {
+                    addItem: function(container, i, opt)
+                    {
+                        const remap = opt || {t1: "", t2: ""};
+
+                        const row = $("<div/>", {
+                            class: "editable_list_row"
+                        }).appendTo(container);
+
+                        const key_input = $("<input/>", {
+                            type: "text",
+                            class: "node-input-remap-t1",
+                            placeholder: "original"
+                        }).appendTo(row).val(remap.t1);
+
+                        const value_input = $("<input/>", {
+                            type: "text",
+                            class: "node-input-remap-t2",
+                            placeholder: "remapped"
+                        }).appendTo(row).val(remap.t2);
+                        
+                    },
+
+                    removable: true,
+                });
+
+                for(const [t1, t2] of Object.entries(node.remaps))
+                {
+                    remaps_editable_list.editableList("addItem", {t1: t1, t2: t2});
+                }  
+            }
+
+            await populate_package_dropdown();
+            await populate_node_dropdown();
+            await populate_params_editable_list();
+            await populate_remaps_editable_list();
+
+            package_dropdown.on("change", populate_node_dropdown);
         },
 
         oneditsave: function()
         {
             const node = this;
 
-            const params = $("#node-input-params_container").editableList('items');
-            node.params = {};
+            const params_editable_list = $("#node-input-params_container");
+            const remaps_editable_list = $("#node-input-remaps_container");
 
-            for (row of params)
+            function save_params()
             {
-                const name = row.find('.node-input-param-name').val();
-                const value = row.find('.node-input-param-value').val();
+                const params = params_editable_list.editableList("items");
+                node.params = {};
 
-                if (name) {
-                    node.params[name] = value;
+                for (row of params)
+                {
+                    const name = row.find(".node-input-param-name").val();
+                    const value = row.find(".node-input-param-value").val();
+
+                    if (name) {
+                        node.params[name] = value;
+                    }
                 }
             }
 
-            const remaps = $("#node-input-remaps_container").editableList('items');
-            node.remaps = {};
-
-            for (row of remaps)
+            function save_remaps()
             {
-                const t1 = row.find('.node-input-remap-t1').val();
-                const t2 = row.find('.node-input-remap-t2').val();
+                const remaps = remaps_editable_list.editableList("items");
+                node.remaps = {};
 
-                if (t1) {
-                    node.remaps[t1] = t2;
+                for (row of remaps)
+                {
+                    const t1 = row.find(".node-input-remap-t1").val();
+                    const t2 = row.find(".node-input-remap-t2").val();
+
+                    if (t1) {
+                        node.remaps[t1] = t2;
+                    }
                 }
             }
+
+            save_params();
+            save_remaps();
         },
 
     });
@@ -177,33 +227,145 @@
 
 <script type="text/html" data-template-name="ros-node">
     
-    <div class="form-row">
-        <label for="node-input-manager"><i class="fa fa-server"></i> Manager</label>
-        <input type="text" id="node-input-manager">
+    <style>
+
+        .edit-dialog-alert {
+            display: flex;
+            flex-direction: row; 
+            justify-content: center; 
+            border: solid 1px tomato; 
+            border-radius: 5px; 
+            padding: 5px;
+
+            max-height: 20px;
+            transition-duration: 0.5s;
+        }
+
+        .edit-dialog-alert:not(.open) {
+            overflow: hidden;
+            max-height: 0;
+            padding: 0;
+            border-width: 0;
+            margin: 0;
+
+            transition-duration: 0.5s;
+        }
+
+        .edit-dialog-alert i {
+            font-size: large;
+            color: tomato;
+            margin-right: 10px;
+        }
+
+        .edit-dialog-alert span {
+            font-size: large; 
+            font-weight: bold;
+        }
+
+        .editable_list_row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #node-input-arg-name {
+            flex: 1;
+        }
+
+        #node-input-arg-value {
+            flex: 1;
+        }
+
+    </style>
+
+    <div id="interface-offline-alert" class="form-row edit-dialog-alert">
+        <i class="fa fa-fw fa-plug"></i>
+        <span>ROS2 Interface is offline</span>
     </div>
 
     <div class="form-row">
-        <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
-        <select id="node-input-package" placeholder="Package"></select>
+        <label for="node-input-manager"><i class="fa fa-fw fa-server"></i> Manager</label>
+        <input id="node-input-manager" type="text">
     </div>
 
     <div class="form-row">
-        <label for="node-input-node"><i class="fa fa-file"></i> Node</label>
-        <select id="node-input-node" placeholder="Node"></select>
+        <label for="node-input-package_name"><i class="fa fa-fw fa-cubes"></i> Package</label>
+        <select id="node-input-package_name" style="width: 70%;"></select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-params_container"><i class="fa fa-list"></i> Parameters</label>
-        <ol id="node-input-params_container"></ol>
+        <label for="node-input-node_name"><i class="fa fa-fw fa-cube"></i> Node</label>
+        <select id="node-input-node_name" style="width: 70%;"></select>
+    </div>
+
+    <hr>
+
+    <div class="form-row">
+        <label for="node-input-runtime_node_name"><i class="fa fa-fw fa-pencil"></i> Name</label>
+        <input id="node-input-runtime_node_name" type="text">
     </div>
 
     <div class="form-row">
-        <label for="node-input-remaps_container"><i class="fa fa-list"></i> Remaps</label>
-        <ol id="node-input-remaps_container"></ol>
+        <label for="node-input-namespace"><i class="fa fa-fw fa-sitemap"></i> Namespace</label>
+        <input id="node-input-namespace" type="text">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-params_container" style="vertical-align: top;"><i class="fa fa-fw fa-sliders"></i> Parameters</label>
+        <div style="display: inline-block; width: 70%;">
+            <ol id="node-input-params_container"></ol>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-remaps_container" style="vertical-align: top;"><i class="fa fa-fw fa-random"></i> Remaps</label>
+        <div style="display: inline-block; width: 70%;">
+            <ol id="node-input-remaps_container"></ol>
+        </div>
     </div>
 
 </script>
 
-<script type="text/html" data-help-name="ros-node">
-    <p>Node description</p>
+<script type="text/markdown" data-help-name="ros-node">
+
+Allows you to edit configuration and orchestrate runtime of ROS2 nodes.
+
+### Inputs
+
+: payload (string) : "start" or "stop" command
+
+### Outputs
+
+1. State
+: payload (string) : serialized version of the state shown by Editor
+
+2. Terminal output
+: payload (string) : combined stdout and stderr output of the running ROS2 node
+
+### Details
+
+The goal of this node is to let Node-RED control ROS2 nodes.
+This node provides most of the functionality of the *ros2 run* command.
+That means setting node name, namespace, parameters and remaps. 
+Using this node is ideal if you want to handle most of the orchestration in Node-RED, or if you are looking for quick prototyping. 
+If you want something more powerful and possibly usable even without Node-RED see ros-launch node.
+
+#### Edit dialog
+
+Most of the properties in edit dialog require ROS2 Interface to be running, for more information 
+see ros2-interface node.
+
+- Manager - This is a configuration node selector, for more information see manager-config node.
+- Package - This dropdown is automatically filled with all packages that are installed on the device where previously selected Manager is running.
+- Node - This dropdown is automatically filled with all nodes that are installed as part of the previously selected package.
+
+- Name - Runtime name, for cases when it needs to be different from executable name.
+- Namespace - Namespace in which the node will be run.
+- Parameters - Simple key value list for setting parameters (param value).
+- Remaps - Simple key value list for setting remaps (original new).
+
+#### Runtime
+
+Runtime part is pretty well explained by inputs and outputs sections.
+
 </script>

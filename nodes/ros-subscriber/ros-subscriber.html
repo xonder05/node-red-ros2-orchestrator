@@ -8,61 +8,114 @@
 
 <script type="text/javascript">
 
-    RED.nodes.registerType("ros-subscriber",{
+    RED.nodes.registerType("ros-subscriber",
+    {
         category: "ROS2",
         color: "#C0DEED",
         defaults: {
-            topic: {value:""},
-            package: {value:""},
-            interface: {value:""},
+            topic_name: {value:""},
+            package_name: {value:""},
+            type_name: {value:""},
         },
         inputs: 0,
         outputs: 1,
         icon: "file.svg",
         label: function() {
-            return this.name || "ros-subscriber";
+            return this.topic_name || "ros-subscriber";
         },
 
         oneditprepare: async function () 
         {
             const node = this;
 
-            const topic_autocomplete = $("#node-input-topic");
-            const package_dropdown = $("#node-input-package");
-            const interface_dropdown = $("#node-input-interface");
+            const topic_autocomplete = $("#node-input-topic_name");
+            const package_dropdown = $("#node-input-package_name");
+            const type_dropdown = $("#node-input-type_name");
 
-            node.topics_dictionary = {};
-
-            async function get_topics_dictionary()
+            async function populate_topic_autocomplete()
             {
-                node.topics_dictionary = await $.getJSON("ros/local/get_topics");
+                topic_autocomplete.autoComplete(
+                {
+                    search: function(user_input) 
+                    {
+                        let matches = [];
+
+                        for (topic of Object.keys(node.topics_dictionary))
+                        {
+                            if (topic.toLowerCase().indexOf(user_input.toLowerCase()) > -1)
+                            {
+                                matches.push({
+                                    value: topic,
+                                    label: topic,
+                                    i: i
+                                })
+                            }
+                        }
+
+                        matches.sort(function(A,B){return A.i-B.i})
+                        
+                        return matches
+                    },
+                });
+
+                try 
+                {
+                    node.topics_dictionary = await $.getJSON("ros/local/get_topics");
+                } 
+                catch (error) 
+                {
+                    node.topics_dictionary = {};    
+                }
             }
 
-            topic_autocomplete.autoComplete(
+            async function populate_package_dropdown() 
             {
-                search: function(user_input) 
+                try 
                 {
-                    let matches = [];
+                    const selected_package = node.package_name;
 
-                    for (topic of Object.keys(node.topics_dictionary))
+                    const packages_list = await $.getJSON("ros/local/list_packages");
+
+                    package_dropdown.empty()
+
+                    for (const package of packages_list)
                     {
-                        if (topic.toLowerCase().indexOf(user_input.toLowerCase()) > -1)
-                        {
-                            matches.push({
-                                value: topic,
-                                label: topic,
-                                i: i
-                            })
-                        }
-                    }
-
-                    matches.sort(function(A,B){return A.i-B.i})
+                        const selected = (package === selected_package) ? "selected" : "";
+                        package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    } 
+                } 
+                catch (error) 
+                {
                     
-                    return matches
-                },
-            });
+                }
+            }
 
-            topic_autocomplete.on("change", async function() 
+            async function populate_type_dropdown() 
+            {
+                try 
+                {
+                    const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
+                    const selected_type = node.type_name;
+
+                    const types_list = await $.getJSON("ros/local/list_types",
+                    {
+                        package: selected_package,
+                    });
+
+                    type_dropdown.empty();
+
+                    for (const type of types_list)
+                    {
+                        const selected = (type === selected_type) ? "selected" : "";
+                        type_dropdown.append(`<option value="${type}" ${selected}>${type}</option>`);
+                    }
+                } 
+                catch (error) {
+                    
+                }
+            }
+
+            async function apply_topic_type()
             {
                 if (this.value in node.topics_dictionary)
                 {
@@ -70,53 +123,18 @@
                     const [package_name, msg, type_name] = full_type_name.split("/")
                     
                     package_dropdown.val(package_name);
-                    await populate_interface_dropdown();
-                    interface_dropdown.val(type_name);
-                }
-            })
-
-            async function populate_package_dropdown() 
-            {
-                package_dropdown.empty()
-
-                const selected_package = node.package;
-
-                const packages_list = await $.getJSON("ros/local/list_packages");
-                
-                for (const package of packages_list)
-                {
-                    const selected = (package === selected_package) ? "selected" : "";
-                    package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    await populate_type_dropdown();
+                    type_dropdown.val(type_name);
                 }
             }
 
-            async function populate_interface_dropdown() 
-            {
-                const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package;
-
-                interface_dropdown.empty();
-
-                const selected_interface = node.interface;
-
-                const interfaces_list = await $.getJSON("ros/local/list_interfaces",
-                {
-                    package: selected_package,
-                });
-
-                for (const interface of interfaces_list)
-                {
-                    const selected = (interface === selected_interface) ? "selected" : "";
-                    interface_dropdown.append(`<option value="${interface}" ${selected}>${interface}</option>`);
-                }
-            }
-
-            await get_topics_dictionary();
+            await populate_topic_autocomplete();
             await populate_package_dropdown();
-            await populate_interface_dropdown();
+            await populate_type_dropdown();
 
-            package_dropdown.on("change", populate_interface_dropdown);
+            package_dropdown.on("change", populate_type_dropdown);
+            topic_autocomplete.on("change", apply_topic_type);
         }
-
     });
 
 </script>
@@ -124,22 +142,39 @@
 <script type="text/html" data-template-name="ros-subscriber">
     
     <div class="form-row">
-        <label for="node-input-topic"><i class="fa fa-tag"></i> Topic</label>
-        <input id="node-input-topic" type="text" placeholder="topic"></select>
+        <label for="node-input-topic_name"><i class="fa fa-fw fa-tag"></i> Topic</label>
+        <input id="node-input-topic_name" type="text">
     </div>
 
     <div class="form-row">
-        <label for="node-input-package"><i class="fa fa-folder"></i> Package</label>
-        <select id="node-input-package" placeholder="Package"></select>
+        <label for="node-input-package_name"><i class="fa fa-fw fa-cubes"></i> Package</label>
+        <select id="node-input-package_name" style="width: 70%;"></select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-interface"><i class="fa fa-cubes"></i> Type</label>
-        <select id="node-input-interface" placeholder="type"></select>
+        <label for="node-input-type_name"><i class="fa fa-fw fa-database"></i> Type</label>
+        <select id="node-input-type_name" style="width: 70%;"></select>
     </div>
 
 </script>
 
-<script type="text/html" data-help-name="ros-subscriber">
-    <p>Node description</p>
+<script type="text/markdown" data-help-name="ros-subscriber">
+
+Allows receiving messages from a ROS2 topic.
+
+### Inputs
+
+: payload (object) : message object published to ROS2 
+
+### Details
+
+The purpose of this node is to allow Node-RED to interact with ROS2 topics. 
+Specifically this node registers ROS2 subscriber, and forwards received messages to its output.
+
+#### Edit dialog
+
+- Topic - Topic name on which the subscriber will listen for messages. This field has autocomplete suggestions for currently active topics. If user selects such topic following package and type fields will be automatically switched to the type used by said topic.
+- Package - This dropdown will be automatically filled by all packages that are installed on the device running Node-RED.
+- Type - This dropdown will be automatically filled by types available in the previously selected package.
+
 </script>

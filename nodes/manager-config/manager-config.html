@@ -1,6 +1,7 @@
 <script type="text/javascript">
 
-    RED.nodes.registerType('manager-config', {
+    RED.nodes.registerType('manager-config', 
+    {
         category: "config",
         defaults: {
             manager_name: {value: ""},
@@ -15,13 +16,24 @@
 <script type="text/html" data-template-name="manager-config">
     
     <div class="form-row">
-        <label for="node-config-input-manager_name">Name</label>
-        <input type="text" id="node-config-input-manager_name">
+        <label for="node-config-input-manager_name"><i class="fa fa-fw fa-tag"></i> Name</label>
+        <input id="node-config-input-manager_name" type="text">
     </div>
 
     <div class="form-row">
-        <label for="node-config-input-manager_id">ID</label>
-        <input type="text" id="node-config-input-manager_id">
+        <label for="node-config-input-manager_id"><i class="fa fa-fw fa-university"></i> Identifier</label>
+        <input id="node-config-input-manager_id" type="text">
     </div>
+
+</script>
+
+<script type="text/markdown" data-help-name="manager-config">
+Holds information required to communicate with specific NodeManager. 
+
+### About NodeManager
+NodeManager is a ROS2 node. One such node must run on each device you want to control.
+Primary function of NodeManagers is starting, managing and stopping nodes and launch files.
+Apart from that NodeManager also provides information about the specific device it is running on,
+like installed packages, nodes, and similar. Lastly handles reading and writing files.
 
 </script>
