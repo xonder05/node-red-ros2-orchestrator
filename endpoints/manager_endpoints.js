@@ -83,11 +83,14 @@ module.exports = function(RED)
             // handle response
             let packages_list = [];
 
-            for (const [key, value] of Object.entries(response))
+            if (response["return_value"] == "3")
             {
-                if (Number.isInteger(Number(key)))
+                for (const [key, value] of Object.entries(response))
                 {
-                    packages_list.push(value);
+                    if (Number.isInteger(Number(key)))
+                    {
+                        packages_list.push(value);
+                    }
                 }
             }
 
@@ -132,14 +135,17 @@ module.exports = function(RED)
             // handle response
             let nodes_list = [];
 
-            for (const [key, value] of Object.entries(response))
+            if (response["return_value"] == "3")
             {
-                if (Number.isInteger(Number(key)))
+                for (const [key, value] of Object.entries(response))
                 {
-                    nodes_list.push(value);
+                    if (Number.isInteger(Number(key)))
+                    {
+                        nodes_list.push(value);
+                    }
                 }
             }
-        
+
             res.status(200).json(nodes_list);
         }
         catch (error) 
@@ -180,12 +186,67 @@ module.exports = function(RED)
 
             // handle response
             let launch_file_list = []
-  
-            for (const [key, value] of Object.entries(response))
+
+            if (response["return_value"] == "3")
             {
-                if (Number.isInteger(Number(key)))
+                for (const [key, value] of Object.entries(response))
                 {
-                    launch_file_list.push(value);
+                    if (Number.isInteger(Number(key)))
+                    {
+                        launch_file_list.push(value);
+                    }
+                }
+            }
+
+            res.status(200).json(launch_file_list);
+        }
+        catch (error) 
+        {
+            res.status(500).json({state: "inactive"});
+        }
+    });
+
+    RED.httpAdmin.get("/ros/manager/list_config_files",
+    async function (req, res) 
+    {
+        try 
+        {
+            // check
+            if (ros2.state.get() == "inactive") {
+                throw Error("ROS2 interface inactive");
+            }
+
+            // build request
+            const node_id = generateId(); 
+            const manager_id = req.query.manager_id;
+            const package_name = req.query.package_name;
+
+            const request = {
+                "message_type": "30",
+                "node_id": "id_" + node_id,
+                "manager_id": manager_id,
+                "script_name": "list_config_files",
+                "package_name": package_name,
+            };
+            
+            // communication
+            const request_serial = serialize_commands_message(request);
+                
+            const response_serial = await ros2.call(node_id, "commands", request_serial);
+            
+            const response = deserialize_command_message(response_serial)
+
+            // handle response
+            let launch_file_list = []
+
+            if (response["return_value"] == "3")
+            {
+                for (const [key, value] of Object.entries(response))
+                {
+                    if (Number.isInteger(Number(key)))
+                    {
+                        launch_file_list.push(value);
+                    }
                 }
             }
 
@@ -232,11 +293,14 @@ module.exports = function(RED)
             // handle response
             let arguments_list = {}
 
-            for (const [key, value] of Object.entries(response))
+            if (response["return_value"] == "3")
             {
-                if (!["message_type", "manager_id", "node_id"].includes(key))
+                for (const [key, value] of Object.entries(response))
                 {
-                    arguments_list[key] = value;
+                    if (!["message_type", "manager_id", "node_id", "return_value"].includes(key))
+                    {
+                        arguments_list[key] = value;
+                    }
                 }
             }
 
@@ -264,7 +328,7 @@ module.exports = function(RED)
             const file_name = req.query.file_name;
 
             const request = {
-                "message_type": "35",
+                "message_type": "40",
                 "manager_id": manager_id,
                 "node_id": "id_" + node_id,
                 "script_name": "resolve_file_path",
@@ -280,7 +344,15 @@ module.exports = function(RED)
             const response = deserialize_command_message(response_serial)
 
             // handle response
-            res.status(200).json(response["file_content"]);   
+            if (response["return_value"] == "4")
+            {
+                res.status(200).json(response["file_content"]);   
+            }
+            else
+            {
+                res.status(200).json("");   
+            }
+
         } 
         catch (error) 
         {
@@ -306,7 +378,7 @@ module.exports = function(RED)
             const file_content = req.query.file_content;
 
             const request = {
-                "message_type": "36",
+                "message_type": "41",
                 "node_id": "id_" + node_id,
                 "manager_id": manager_id,
                 "script_name": "resolve_file_path",
@@ -325,7 +397,7 @@ module.exports = function(RED)
             // handle response
             res.status(200).json(response["return_value"]);   
         } 
-        catch (error) 
+        catch (error)
         {
             res.status(500).json({state: "inactive"});
         }
