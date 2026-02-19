@@ -10,7 +10,7 @@ module.exports = function(RED)
 
     function ROSSubscriber(config) 
     {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         const node = this;
 
         function init()
@@ -35,7 +35,7 @@ module.exports = function(RED)
             {
                 try
                 {
-                    node.subscriber = await ros2.subscribe_topic(node.id, config.topic, config.package + "/" + config.interface, log_callback);
+                    node.subscriber = await ros2.subscribe_topic(node.id, config.topic_name, config.package_name + "/" + config.type_name, log_callback);
                 
                     node.state = {fill: "green", shape: "dot", text: "Subscribed"} 
                     node.status(node.state);

@@ -17,7 +17,7 @@
             package_name: {value: ""},
             launch_name: {value: ""},
             config_name: {value: ""},
-            launch_args: {value: {}},
+            args: {value: {}},
         },
         inputs: 1,
         outputs: 2,
@@ -212,7 +212,7 @@
 
                     for(const [arg, def] of Object.entries(arguments_dict))
                     {
-                        const value = node.launch_args[arg];
+                        const value = node.args[arg];
 
                         if (value) {
                             args_editable_list.editableList("addItem", {name: arg, value: value});
@@ -408,7 +408,7 @@
             function save_args()
             {
                 const args = args_editable_list.editableList("items");
-                node.launch_args = {};
+                node.args = {};
 
                 for (row of args)
                 {
@@ -416,7 +416,7 @@
                     const value = row.find(".node-input-arg-value").val();
 
                     if (name) {
-                        node.launch_args[name] = value;
+                        node.args[name] = value;
                     }
                 }
             }
@@ -434,8 +434,8 @@
             }
 
             save_args();
-            save_launch_file_content();
-            save_config_file_content();
+            destroy_launch_editor();
+            destroy_config_editor();
         },
 
         oneditcancel: function() 

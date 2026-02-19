@@ -19,7 +19,7 @@ module.exports = function(RED)
             node.node_id = node.id.slice(node.id.lastIndexOf("-") + 1)
             node.log = "";
 
-            // get corresponding manager config from enviroment
+            // get corresponding manager config from environment
             node.manager_config = RED.nodes.getNode(config.manager);
 
             if (ros2.state.get() == "active")
@@ -105,11 +105,11 @@ module.exports = function(RED)
                 message_type: "20",
                 manager_id: node.manager_config.manager_id,
                 node_id: "id_" + node.node_id,
-                package_name: config.package,
+                package_name: config.package_name,
                 node_name: config.launch_name,
             };
 
-            for (const [key, value] of Object.entries(config.launch_args))
+            for (const [key, value] of Object.entries(config.args))
             {
                 request["arg_" + key] = value;
             }
@@ -152,6 +152,7 @@ module.exports = function(RED)
 
         async function stop_node()
         {
+            // check
             if (ros2.state.get() == "inactive")
             {
                 node.state = {fill: "gray", shape: "ring", text: "ROS2 Interface is offline"}
@@ -167,7 +168,7 @@ module.exports = function(RED)
                 message_type: 50,
                 manager_id: node.manager_config.manager_id,
                 node_id: "id_" + node.node_id,
-                package_name: config.package,
+                package_name: config.package_name,
                 node_name: config.launch_name,
             };
 
@@ -200,10 +201,6 @@ module.exports = function(RED)
                     catch (error) {
                         // todo i don't even know what to write here, find out how to recover from this
                     }
-                }
-
-                if (node.closing) {
-                    close_event_handler()
                 }
             }
             else

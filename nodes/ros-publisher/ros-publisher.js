@@ -10,7 +10,7 @@ module.exports = function(RED)
 
     function ROSPublisher(config) 
     {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         const node = this;
 
         function init()
@@ -35,7 +35,7 @@ module.exports = function(RED)
             {
                 try
                 {
-                    node.publisher = await ros2.advertise_topic(node.id, config.topic, config.package + "/" + config.interface);
+                    node.publisher = await ros2.advertise_topic(node.id, config.topic_name, config.package_name + "/" + config.type_name);
                 
                     node.state = {fill: "green", shape: "dot", text: "Advertised"} 
                     node.status(node.state);
@@ -50,7 +50,7 @@ module.exports = function(RED)
 
         async function input_event_handler(msg, send, done)
         {
-            ros2.publish(config.topic, msg.payload);
+            ros2.publish(config.topic_name, msg.payload);
             done();
         }
 
