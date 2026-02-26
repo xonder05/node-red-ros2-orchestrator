@@ -5,8 +5,6 @@
   "node-red": {
     "nodes": {
       "hidden_flow": "nodes/hidden_flow/hidden_flow.js",
-      "local_endpoints": "endpoints/local_endpoints.js",
-      "manage_endpoints": "endpoints/manager_endpoints.js",
       "ros-interface": "nodes/interface/ros-interface.js",
       "manager-config": "nodes/manager-config/manager-config.js",
       "ros-node": "nodes/node/ros-node.js",
@@ -15,7 +13,9 @@
       "subscriber": "nodes/ros-subscriber/ros-subscriber.js"
     },
     "plugins": {
-      "sidebar_terminal": "plugins/sidebar_terminal.html"
+      "local_endpoints": "plugins/endpoints/local_endpoints.js",
+      "manager_endpoints": "plugins/endpoints/manager_endpoints.js",
+      "sidebar_terminal": "plugins/sidebar/sidebar_terminal.html"
     }
   },
   "dependencies": {
