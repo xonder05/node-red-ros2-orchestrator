@@ -12,23 +12,19 @@ module.exports = function(RED)
 {
     const child_process = require("child_process");
 
-    if(!global.log_setup_complete)
+    RED.httpAdmin.get("/ros/local/terminal_output", 
+    function (req, res) 
     {
-        global.log_setup_complete = true;
+        const node_id = req.query.node_id;
+        const node = RED.nodes.getNode(node_id);
 
-        RED.httpAdmin.get("/get_log", 
-        function (req, res) 
-        {
-            const node = RED.nodes.getNode(req.query.id);
-
-            if (node) {
-                res.send(node.log);
-            }
-            else {
-                res.status(404).json({ error: "Node not found" });
-            }
-        });
-    }
+        if (node) {
+            res.send(node.terminal_output);
+        }
+        else {
+            res.status(404).json({ error: "Node not found" });
+        }
+    });
 
     RED.httpAdmin.get("/ros/local/list_topics",
     function (req, res) 

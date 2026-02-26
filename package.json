@@ -12,6 +12,9 @@
       "ros-launch": "nodes/launch/ros-launch.js",
       "publisher": "nodes/ros-publisher/ros-publisher.js",
       "subscriber": "nodes/ros-subscriber/ros-subscriber.js"
+    },
+    "plugins": {
+      "sidebar_terminal": "plugins/sidebar_terminal.html"
     }
   },
   "dependencies": {

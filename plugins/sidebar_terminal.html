@@ -1,0 +1,294 @@
+<style>
+    #sidebar_terminal {
+        height: calc(100% - 10px);
+        padding: 5px;
+
+        position: relative;
+    }
+
+    #sidebar_terminal_header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .left {
+        flex-grow: 0;
+        flex-shrink: 1;
+        overflow: hidden;
+    }
+
+    .right {
+        flex-grow: 0;
+        flex-shrink: 0;
+
+        color: var(--red-ui-workspace-button-color);
+        background: var(--red-ui-workspace-button-background);
+        border: 1px solid var(--red-ui-form-input-border-color);
+        font-size: 13px;
+        line-height: 13px;
+        padding: 5px 8px;
+        cursor: pointer;
+
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .right:hover {
+        color: var(--red-ui-workspace-button-color-hover);
+        background: var(--red-ui-workspace-button-background-hover);
+    }
+
+    .right input[type=checkbox] {
+        margin: 0;
+    }
+
+    #sidebar_terminal_body {
+        height: calc(100% - 37px);
+        
+        font-family: monospace;
+        font-size: 13px;
+        overflow-y: auto;
+        white-space: preserve-breaks wrap;
+    }
+
+    .scroll_btn {
+        position: absolute;
+        bottom: 20px;
+        right: 40px;
+
+        width: 40px;
+        height: 40px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        background-color: var(--red-ui-workspace-button-background);
+        border: solid 4px var(--red-ui-workspace-button-color);
+        border-radius: 50%; 
+        padding: 5px;
+
+        cursor: pointer;
+
+        visibility: visible;
+        opacity: 1;
+        transition-duration: 0.5s;
+    }
+
+    .scroll_btn:hover {
+        border: solid 4px var(--red-ui-workspace-button-color-hover);
+        background-color: var(--red-ui-workspace-button-background-hover);
+    }
+
+    .scroll_btn:not(.open) {
+        visibility: hidden;
+        opacity: 0;
+        transition-duration: 0.5s;
+    }
+
+    .scroll_btn i {
+        font-size: 25px;
+    }
+
+</style>
+
+<div id="sidebar_terminal" style="display: none;">
+
+    <div id="sidebar_terminal_header" class="red-ui-sidebar-header">
+        <span id="sidebar_terminal_header_name" class="left"></span>
+        <span id="sidebar_terminal_header_lock" class="right"><input type="checkbox"> Lock Selected</span>
+    </div>
+
+    <div id="sidebar_terminal_body">No output received yet</div>
+
+    <div id="resume_scrolling_btn" class="scroll_btn">
+        <i class="fa fa-chevron-down"></i>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+
+RED.plugins.registerPlugin("sidebar_terminal_plugin", 
+{
+    onadd: function() 
+    {
+        let node = undefined;
+
+        // create tab content
+        const template = $("#sidebar_terminal");
+        const content = template.clone();
+        content.css({"display": ""})
+
+        // content elements
+        const node_name = content.find("#sidebar_terminal_header_name")
+        const lock_button = content.find("#sidebar_terminal_header_lock");
+        const lock_checkbox = content.find("#sidebar_terminal_header_lock input");
+        const terminal = content.find("#sidebar_terminal_body")
+        const scroll_btn = content.find("#resume_scrolling_btn")
+
+        // add tab
+        RED.sidebar.addTab({
+            id: "sidebar_terminal",
+            name: "ROS2 Terminal",
+            label: "ROS2 Terminal",
+            iconClass: "fa fa-terminal",
+            content: content[0],
+        })
+
+        // user changed node selection in editor
+        RED.events.on("view:selection-changed", function(selection_object) 
+        {
+            if (lock_checkbox.prop("checked")) {
+                return;
+            }
+
+            // check selection validity (not empty, not multiple, supported node)
+            if (selection_object && Object.keys(selection_object).length == 0) {
+                return;
+            }
+
+            if (selection_object.nodes.length != 1) {
+                return;
+            }
+
+            if (!["ros-node", "ros-launch", "ros-subscriber"].includes(selection_object.nodes[0].type)) {
+                return;
+            }
+
+            // save current scroll position before switching to new node
+            if (node && !node.auto_scroll)
+            {
+                node.auto_scroll_first_line = terminal.children().filter(
+                function() {
+                    return $(this).position().top > 0;
+                })
+                .first()
+                .attr("id");
+            }
+
+            // switch to new node
+            node = selection_object.nodes[0];
+
+            // init (when node is selected for first time)
+            if (!node.hasOwnProperty("auto_scroll")) {
+                node.auto_scroll = true;
+            }
+
+            if (!node.hasOwnProperty("auto_scroll_pos")) {
+                node.auto_scroll_pos = 0;
+            }
+
+            if (!node.hasOwnProperty("auto_scroll_first_line")) {
+                node.auto_scroll_first_line = undefined;
+            }
+
+            // set header content
+            if (node.type == "ros-node") {
+                node_name.text(node.node_name)
+            }
+            else if (node.type == "ros-launch") {
+                node_name.text(node.launch_name)
+            }
+            else if (node.type == "ros-subscriber") {
+                node_name.text(node.topic_name)
+            }
+            else {
+                return;
+            }
+
+            // set terminal content
+            $.get(`/ros/local/terminal_output?node_id=${node.id}`, (terminal_output) =>
+            {
+                if (terminal_output != "") {
+                    terminal.empty().append(terminal_output);
+                }
+                else {
+                    terminal.empty().append("No output received yet\n");
+                }
+            });
+
+            // restore scroll state
+            if (node.auto_scroll) {
+                scroll_btn.removeClass("open");
+            }
+            else {
+                scroll_btn.addClass("open");
+            }
+
+            // timeout because without it terminal.find() does not find recently added elements
+            setTimeout(() => 
+            {
+                if (node.auto_scroll == false && node.auto_scroll_first_line != undefined) 
+                {
+                    const line = terminal.find("#" + node.auto_scroll_first_line);
+                    const pos = line[0].offsetTop - line.outerHeight();
+                    terminal.scrollTop(pos);
+                    console.log(line);
+                    console.log(pos);
+                }
+                else 
+                {
+                    terminal.scrollTop(terminal[0].scrollHeight);
+                }
+            }, 100);
+        })
+
+        // new data from backend
+        RED.comms.subscribe("terminal_output", function (event, msg) 
+        {
+            if (node && node.id == msg.node_id)
+            {
+                terminal.append(msg.terminal_output);
+                
+                if (terminal.children().length > 1000) {
+                    terminal.children().first().remove();
+                }
+
+                if (node.auto_scroll) {
+                    terminal.scrollTop(terminal[0].scrollHeight);
+                }
+            }
+        });
+
+        // lock selected node
+        lock_button.on("click", function()
+        {
+            if (lock_checkbox.prop("checked")) {
+                lock_checkbox.prop("checked", false);
+            }
+            else {
+                lock_checkbox.prop("checked", true);
+            }
+        });
+
+        // auto scroll disable
+        terminal.on("scroll", function() 
+        {
+            if (terminal.scrollTop() < node.auto_scroll_pos)
+            {
+                node.auto_scroll = false;
+                scroll_btn.addClass("open");
+            }
+
+            node.auto_scroll_pos = terminal.scrollTop();
+        })
+
+        // auto scroll enable
+        scroll_btn.on("click", function() 
+        {
+            scroll_btn.removeClass("open");
+            terminal.scrollTop(terminal[0].scrollHeight);
+            node.auto_scroll = true;
+
+            // terminal.animate({
+            //     scrollTop: terminal[0].scrollHeight
+            // }, 1000);
+        })
+    }
+})
+
+</script>

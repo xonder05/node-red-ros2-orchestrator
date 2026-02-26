@@ -7,6 +7,7 @@
 module.exports = function(RED) 
 {
     const ros2 = require("../../ros2_interface_api/ros2_interface_api.js");
+    const ansi_to_html = require("ansi-to-html");
 
     function ROSSubscriber(config) 
     {
@@ -17,7 +18,10 @@ module.exports = function(RED)
         {
             // slice only the node id without subflows
             node.node_id = node.id.slice(node.id.lastIndexOf("-") + 1)
-            node.log = "";
+
+            node.terminal_output = [];
+            node.terminal_output_msg_num = 0;
+            node.terminal_output_converter = new ansi_to_html();
 
             ros2.state.on("change", interface_state_change_handler);
 
@@ -35,7 +39,9 @@ module.exports = function(RED)
             {
                 try
                 {
-                    node.subscriber = await ros2.subscribe_topic(node.id, config.topic_name, config.package_name + "/" + config.type_name, log_callback);
+                    node.subscriber = await ros2.subscribe_topic(
+                        node.id, config.topic_name, config.package_name + "/" + config.type_name, terminal_output_callback
+                    );
                 
                     node.state = {fill: "green", shape: "dot", text: "Subscribed"} 
                     node.status(node.state);
@@ -48,20 +54,31 @@ module.exports = function(RED)
             }
         }
 
-        function log_callback(msg)
+        function terminal_output_callback(msg)
         {
-            node.log = node.log + msg.payload?.data + "\n";
+            // parse message
+            const ros_msg = msg.payload;
+            const raw_string = ros_msg.data;
 
-            RED.comms.publish("log", {
-                id: node.id,
-                log: node.log,
+            // convert
+            const one_line = raw_string.replace("/\n/g", "");
+            const ansi_line = `<div id="msg_${node.terminal_output_msg_num++}">${one_line}</div>`;
+            const html_line = node.terminal_output_converter.toHtml(ansi_line);
+            node.terminal_output.push(html_line);
+
+            // send new data to Editor sidebar
+            RED.comms.publish("terminal_output", {
+                node_id: node.id,
+                terminal_output: html_line,
             }, true);
 
-            out = {
-                payload: msg.payload?.data,
-            }
+            // send new data to node output
+            node.send([null, {payload: html_line}])
 
-            node.send(out)
+            // limit history to 1000 lines
+            if (node.terminal_output.length > 1000) {
+                node.terminal_output = node.terminal_output.slice(1);
+            }
         }
 
         async function close_event_handler(removed, done)
