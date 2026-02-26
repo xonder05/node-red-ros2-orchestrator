@@ -1,0 +1,49 @@
+<script> /**
+ * @file hidden_flow.html
+ * @author Daniel Onderka (xonder05)
+ * @date 02/2026
+ */ </script>
+
+<script type="text/javascript">
+
+    RED.nodes.registerType("hidden_flow", {
+        category: "ROS2",
+        color: "#AAAAAA",
+        defaults: {},
+        inputs: 0,
+        outputs: 0,
+        icon: "file.png",
+        label: function () {
+            return "hidden_flow";
+        },
+        oneditprepare: function () 
+        {
+            $("#red-ui-tab-editor-tab-description-link-button").click();
+        }
+    });
+
+    RED.events.on("workspace:change", function(change_obj) 
+    {
+        const flow_id = change_obj.old;
+
+        RED.nodes.eachNode(function(node)
+        {
+            if (node.z == flow_id && node.type == "hidden_flow")
+            {
+                RED.workspaces.hide(flow_id);
+            }
+        });
+    });
+
+</script>
+
+<script type="text/markdown" data-help-name="hidden_flow">
+
+Automatically hide flow when it is not selected.
+
+### Details
+When this node is located in a flow. That flow will be automatically hidden when switching to a different one.
+This allows you to clean the top tab bar. Ideal usage is in combination with link nodes that allow you to easily reach 
+these hidden flows.
+
+</script>

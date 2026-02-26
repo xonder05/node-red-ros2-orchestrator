@@ -4,6 +4,7 @@
   "description": "",
   "node-red": {
     "nodes": {
+      "hidden_flow": "nodes/hidden_flow/hidden_flow.js",
       "local_endpoints": "endpoints/local_endpoints.js",
       "manage_endpoints": "endpoints/manager_endpoints.js",
       "ros-interface": "nodes/interface/ros-interface.js",
