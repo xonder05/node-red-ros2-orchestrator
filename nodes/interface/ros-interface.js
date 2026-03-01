@@ -7,7 +7,7 @@
 
 module.exports = function(RED) 
 {
-    const ros2 = require("../../ros2_interface_api/ros2_interface_api.js");
+    const ros2 = require("ros2_interface_api");
 
     function ROSInterface(config) 
     {

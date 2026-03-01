@@ -1,5 +1,5 @@
 {
-  "name": "node-red-custom-nodes",
+  "name": "node-red-ros2-orchestrator",
   "version": "1.0.0",
   "description": "",
   "node-red": {
@@ -19,5 +19,6 @@
     }
   },
   "dependencies": {
+    "ansi-to-html": "^0.7.2"
   }
 }
