@@ -111,17 +111,21 @@ module.exports = function(RED)
                 node_id: "id_" + node.node_id,
                 package_name: config.package_name, 
                 node_name: config.node_name,
-                runtime_node_name: config.runtime_node_name,
-                namespace: config.namespace,
             };
 
-            for (const [key, value] of Object.entries(config.params))
-            {
+            if (config.runtime_node_name) {
+                request["runtime_node_name"] = config.runtime_node_name  
+            }
+
+            if (config.namespace) {
+                request["namespace"] = config.namespace  
+            }
+
+            for (const [key, value] of Object.entries(config.params)) {
                 request["param_" + key] = value;
             }
 
-            for (const [key, value] of Object.entries(config.remaps))
-            {
+            for (const [key, value] of Object.entries(config.remaps)) {
                 request["remap_" + key] = value;
             }
 

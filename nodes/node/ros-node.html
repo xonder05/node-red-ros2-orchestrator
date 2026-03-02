@@ -30,6 +30,7 @@
             const node = this;
 
             const interface_offline_alert = $("#interface-offline-alert");
+            const manager_dropdown = $("#node-input-manager");
             const package_dropdown = $("#node-input-package_name");
             const node_dropdown = $("#node-input-node_name");
             const params_editable_list = $("#node-input-params_container");
@@ -39,11 +40,14 @@
             {
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = node.package_name;
+
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
 
                     const packages_list = await $.getJSON("/ros/manager/list_packages",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id
                     });
 
                     package_dropdown.empty();
@@ -52,6 +56,10 @@
                     {
                         const selected = (package === selected_package) ? "selected" : "";
                         package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    }
+
+                    if (package_dropdown.val()) {
+                        package_dropdown.trigger("change");
                     }
                 } 
                 catch (error) 
@@ -69,12 +77,15 @@
             {
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_node = node.node_name;
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     const node_list = await $.getJSON("ros/manager/list_nodes",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                     });
 
@@ -130,7 +141,6 @@
                 {
                     params_editable_list.editableList("addItem", {name: name, value: value});
                 }
-
             }
 
             async function populate_remaps_editable_list()
@@ -173,6 +183,7 @@
             await populate_params_editable_list();
             await populate_remaps_editable_list();
 
+            manager_dropdown.on("change", populate_package_dropdown);
             package_dropdown.on("change", populate_node_dropdown);
         },
 

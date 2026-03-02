@@ -74,11 +74,14 @@
             {
                 try
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = node.package_name;
+
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
 
                     const packages_list = await $.getJSON("ros/manager/list_packages",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                     });
 
                     package_dropdown.empty();
@@ -89,6 +92,9 @@
                         package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
                     }
 
+                    if (package_dropdown.val()) {
+                        package_dropdown.trigger("change");
+                    }
                 }
                 catch (error) 
                 {
@@ -105,12 +111,15 @@
             {
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch = node.launch_name;
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     const launch_file_list = await $.getJSON("ros/manager/list_launch_files",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                     });
 
@@ -122,7 +131,10 @@
                         launch_file_dropdown.append(`<option value="${launch_file}" ${selected}>${launch_file}</option>`);
                     }
 
-                } 
+                    if (launch_file_dropdown.val()) {
+                        launch_file_dropdown.trigger("change");
+                    }
+                }
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
@@ -138,12 +150,15 @@
             {
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_config = node.config_name;
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     const config_file_list = await $.getJSON("ros/manager/list_config_files",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                     });
 
@@ -153,6 +168,10 @@
                     {
                         const selected = (config_file === selected_config) ? "selected" : "";
                         config_file_dropdown.append(`<option value="${config_file}" ${selected}>${config_file}</option>`);
+                    }
+
+                    if (config_file_dropdown.val()) {
+                        config_file_dropdown.trigger("change");
                     }
                 } 
                 catch (error) 
@@ -196,12 +215,15 @@
 
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     const arguments_dict = await $.getJSON("ros/manager/list_launch_arguments",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                         launch_file_name: selected_launch_file_name,
                     });
@@ -242,12 +264,15 @@
 
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     const file_content = await $.getJSON("ros/manager/read_file",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                         file_name: selected_launch_file_name,
                     });
@@ -277,12 +302,15 @@
 
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_config_file_name = config_file_dropdown.val() ? config_file_dropdown.val() : node.config_name;
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     const file_content = await $.getJSON("ros/manager/read_file",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                         file_name: selected_config_file_name,
                     });
@@ -304,13 +332,16 @@
             {
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_launch_file_name = launch_file_dropdown.val() ? launch_file_dropdown.val() : node.launch_name;
                     const launch_content = node.launch_editor.getValue();
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     return_value = await $.getJSON("ros/manager/write_file",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                         file_name: selected_launch_file_name,
                         file_content: launch_content,
@@ -341,13 +372,16 @@
             {
                 try 
                 {
+                    const selected_manager = manager_dropdown.val() ? manager_dropdown.val() : node.manager;
                     const selected_package = package_dropdown.val() ? package_dropdown.val() : node.package_name;
                     const selected_config_file_name = config_file_dropdown.val() ? config_file_dropdown.val() : node.config_name;
                     const config_content = node.config_editor.getValue();
 
+                    if (selected_manager == "" || selected_manager == "_ADD_") return;
+
                     return_value = await $.getJSON("ros/manager/write_file",
                     {
-                        manager_id: RED.nodes.node(node.manager).manager_id,
+                        manager_id: RED.nodes.node(selected_manager).manager_id,
                         package_name: selected_package,
                         file_name: selected_config_file_name,
                         file_content: config_content,
@@ -382,6 +416,7 @@
             await populate_launch_file_contents();
             await populate_config_file_contents();
 
+            manager_dropdown.on("change", populate_package_dropdown);
             package_dropdown.on("change", populate_launch_file_dropdown);
             package_dropdown.on("change", populate_config_file_dropdown);
             launch_file_dropdown.on("change", populate_arguments_editable_list);
