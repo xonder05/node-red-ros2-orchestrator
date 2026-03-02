@@ -35,29 +35,8 @@ module.exports = function(RED)
             }
             else
             {
-                const service_name = "commands";
-                const message_type = "node_manager/DictionarySerialized";
-                const qos = {
-                    history: {
-                        kind: "KEEP_LAST",
-                        depth: 10
-                    },
-                    reliability: "RELIABLE",
-                    durability: "VOLATILE"
-                };
-
-                try 
-                {
-                    node.client = await ros2.consume_service(node.id, service_name, message_type, qos)
-                    
-                    node.state = {fill: "green", shape: "dot", text: "Online"};
-                    node.status(node.state);
-                }
-                catch (error) 
-                {
-                    node.state = {fill: "yellow", shape: "dot", text: "Online, no manager service"};
-                    node.status(node.state);
-                }
+                node.state = {fill: "green", shape: "dot", text: "Online"};
+                node.status(node.state);
             }
         }
 

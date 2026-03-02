@@ -1,7 +1,7 @@
 /**
  * @file ros-subscriber.js
  * @author Daniel Onderka (xonder05)
- * @date 10/2025, 01/2026
+ * @date 06/2025
  */
 
 module.exports = function(RED) 

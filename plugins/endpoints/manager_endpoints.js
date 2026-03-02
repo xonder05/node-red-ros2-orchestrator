@@ -78,7 +78,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
 
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
 
                 const response = deserialize_command_message(response_serial);
 
@@ -130,7 +130,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
 
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
                 
                 const response = deserialize_command_message(response_serial);
 
@@ -182,7 +182,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
                     
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
                 
                 const response = deserialize_command_message(response_serial)
 
@@ -234,7 +234,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
                     
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
                 
                 const response = deserialize_command_message(response_serial)
 
@@ -288,7 +288,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
 
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
 
                 const response = deserialize_command_message(response_serial);
 
@@ -341,7 +341,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
 
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
                 
                 const response = deserialize_command_message(response_serial)
 
@@ -392,7 +392,7 @@ module.exports = function(RED)
                 // communication
                 const request_serial = serialize_commands_message(request);
 
-                const response_serial = await ros2.call(node_id, "commands", request_serial);
+                const response_serial = await ros2.call(node_id, `/management/commands/${manager_id}`, request_serial);
 
                 const response = deserialize_command_message(response_serial)
 

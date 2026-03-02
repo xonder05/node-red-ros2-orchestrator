@@ -1,7 +1,7 @@
 /**
  * @file ros-node.js
  * @author Daniel Onderka (xonder05)
- * @date 10/2025
+ * @date 06/2025
  */
 
 module.exports = function(RED) 
@@ -17,7 +17,8 @@ module.exports = function(RED)
         function init()
         {
             // slice only the node id without subflows
-            node.node_id = node.id.slice(node.id.lastIndexOf('-') + 1)
+            node.node_id = node.id.slice(node.id.lastIndexOf('-') + 1);
+            node.manager = RED.nodes.getNode(config.manager);
 
             node.terminal_output = [];
             node.terminal_output_msg_num = 0;
@@ -134,7 +135,9 @@ module.exports = function(RED)
 
             let response_serialized;
             try {
-                response_serialized = await ros2.call(node.node_id, "commands", request_serialized);
+                response_serialized = await ros2.call(
+                    node.node_id, `/management/commands/${node.manager.manager_id}`, request_serialized
+                );
             }
             catch (error) {
                 node.state = {fill: "red", shape: "dot", text: "Could not contact NodeManager"} 
@@ -194,7 +197,9 @@ module.exports = function(RED)
 
             let response_serialized;
             try {
-                response_serialized = await ros2.call(node.node_id, "commands", request_serialized);
+                response_serialized = await ros2.call(
+                    node.node_id, `/management/commands/${node.manager.manager_id}`, request_serialized
+                );
             } 
             catch (error) {
                 node.state = {fill: "red", shape: "dot", text: "Could not contact NodeManager"} 
