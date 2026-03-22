@@ -233,8 +233,6 @@ RED.plugins.registerPlugin("sidebar_terminal_plugin",
                     const line = terminal.find("#" + node.auto_scroll_first_line);
                     const pos = line[0].offsetTop - line.outerHeight();
                     terminal.scrollTop(pos);
-                    console.log(line);
-                    console.log(pos);
                 }
                 else 
                 {
@@ -274,7 +272,7 @@ RED.plugins.registerPlugin("sidebar_terminal_plugin",
         // auto scroll disable
         terminal.on("scroll", function() 
         {
-            if (terminal.scrollTop() < node.auto_scroll_pos)
+            if (terminal.scrollTop() + terminal.innerHeight() < terminal[0].scrollHeight - 10)
             {
                 node.auto_scroll = false;
                 scroll_btn.addClass("open");

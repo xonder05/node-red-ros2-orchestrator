@@ -51,7 +51,7 @@ module.exports = function(RED)
 
         async function close_event_handler(removed, done)
         {
-            if (["green", "yellow"].includes(node.state.fill))
+            if (ros2.state.current_state == "active")
             {
                 try {
                     await node.client.destroy(node.node_id);
@@ -61,10 +61,7 @@ module.exports = function(RED)
                 }
             }
 
-            if (["grey", "red"].includes(node.state.fill))
-            {
-                done();
-            }
+            done();
         }
 
         init();
