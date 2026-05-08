@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, json
 from rosidl_runtime_py import get_message_interfaces
 

@@ -11,6 +11,7 @@
 module.exports = function(RED)
 {
     const child_process = require("child_process");
+    const path = require("path");
 
     RED.plugins.registerPlugin("local_endpoints", { onadd: function() 
     {
@@ -31,7 +32,7 @@ module.exports = function(RED)
         RED.httpAdmin.get("/ros/local/list_topics",
         function (req, res) 
         {
-            child_process.exec("python3 ./scripts/list_topics.py", 
+            child_process.exec(`python3 ${path.join(__dirname, "..", "..", "scripts", "list_topics.py")}`,
             function (error, stdout, stderr)
             {
                 try 
@@ -53,7 +54,7 @@ module.exports = function(RED)
         RED.httpAdmin.get("/ros/local/list_packages",
         function (req, res) 
         {
-            child_process.exec("python3 ./scripts/list_packages.py", 
+            child_process.exec(`python3 ${path.join(__dirname, "..", "..", "scripts", "list_packages.py")}`,
             function (error, stdout, stderr)
             {
                 try 
@@ -77,7 +78,7 @@ module.exports = function(RED)
         {
             const selected_package = req.query.package;
 
-            child_process.exec(`python3 ./scripts/list_types.py ${selected_package}`, 
+            child_process.exec(`python3 ${path.join(__dirname, "..", "..", "scripts", "list_types.py")} ${selected_package}`,
             function (error, stdout, stderr)
             {
                 try 

@@ -31,11 +31,13 @@ module.exports = function(RED)
             {
                 node.state = {fill: "grey", shape: "dot", text: "Offline"};
                 node.status(node.state);
+                node.send([node.state, null])
             }
             else
             {
                 node.state = {fill: "grey", shape: "ring", text: "ROS2 Interface is offline"};
                 node.status(node.state);
+                node.send([node.state, null])
             }
 
             node.on("input", input_event_handler);
@@ -99,11 +101,13 @@ module.exports = function(RED)
             {
                 node.state = {fill: "gray", shape: "ring", text: "ROS2 Interface is offline"}
                 node.status(node.state);
+                node.send([node.state, null])
                 return;
             }
 
             node.state = {fill: "blue", shape: "dot", text: "Calling NodeManager"}
             node.status(node.state);
+            node.send([node.state, null])
 
             // build message
             let request = {
@@ -131,6 +135,7 @@ module.exports = function(RED)
             catch (error) {
                 node.state = {fill: "red", shape: "dot", text: "Could not contact NodeManager"} 
                 node.status(node.state);
+                node.send([node.state, null])
                 return;
             }
 
@@ -141,6 +146,7 @@ module.exports = function(RED)
             {
                 node.state = {fill: "green", shape: "dot", text: "Running"} 
                 node.status(node.state);
+                node.send([node.state, null])
 
                 try {
                     node.stdout_subscriber = await ros2.subscribe_topic(
@@ -150,12 +156,14 @@ module.exports = function(RED)
                 catch (error) {
                     node.state = {fill: "yellow", shape: "dot", text: "Running, no stdout"} 
                     node.status(node.state);
+                    node.send([node.state, null])
                 }
             }
             else
             {
                 node.state = {fill: "red", shape: "dot", text: (`NodeManager Error (Code: ${response.return_value})`)}
                 node.status(node.state);
+                node.send([node.state, null])
             }
         }
 
@@ -166,11 +174,13 @@ module.exports = function(RED)
             {
                 node.state = {fill: "gray", shape: "ring", text: "ROS2 Interface is offline"}
                 node.status(node.state);
+                node.send([node.state, null])
                 return;
             }
 
             node.state = {fill: "blue", shape: "dot", text: "Calling NodeManager"}
             node.status(node.state);
+            node.send([node.state, null])
 
             // build message
             const request = {
@@ -193,6 +203,7 @@ module.exports = function(RED)
             catch (error) {
                 node.state = {fill: "red", shape: "dot", text: "Could not contact NodeManager"} 
                 node.status(node.state);
+                node.send([node.state, null])
                 return;
             }
 
@@ -203,6 +214,7 @@ module.exports = function(RED)
             {
                 node.state = {fill: "grey", shape: "dot", text: "Offline"} 
                 node.status(node.state);
+                node.send([node.state, null])
 
                 if (node.stdout_subscriber)
                 {
@@ -218,6 +230,7 @@ module.exports = function(RED)
             {
                 node.state = {fill: "red", shape: "dot", text: (`NodeManager Error (Code: ${response.return_value})`)}
                 node.status(node.state);
+                node.send([node.state, null])
             }
         }
 

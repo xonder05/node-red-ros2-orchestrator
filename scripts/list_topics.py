@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 from ros2cli.node.strategy import NodeStrategy
 from ros2topic.api import get_topic_names_and_types
