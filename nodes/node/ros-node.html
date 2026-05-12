@@ -10,9 +10,9 @@
         category: "ROS2",
         color: "#F3B567",
         defaults: {
-            manager: {value: "", type: "manager-config"},
-            package_name: {value: ""},
-            node_name: {value: ""},
+            manager: {value: "", type: "manager-config", required: true},
+            package_name: {value: "", required: true, validate: function(v) {return v != null}},
+            node_name: {value: "", required: true, validate: function(v) {return v != null}},
             runtime_node_name: {value: ""},
             namespace: {value: ""},
             params: {value: {}},
@@ -50,6 +50,7 @@
                         manager_id: RED.nodes.node(selected_manager).manager_id
                     });
 
+                    package_dropdown.prop("disabled", true);
                     package_dropdown.empty();
 
                     for (const package of packages_list)
@@ -58,10 +59,12 @@
                         package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
                     }
 
+                    package_dropdown.trigger("change");
+
                     if (package_dropdown.val()) {
-                        package_dropdown.trigger("change");
+                        package_dropdown.prop("disabled", false);
                     }
-                } 
+                }
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
@@ -89,14 +92,21 @@
                         package_name: selected_package,
                     });
 
+                    node_dropdown.prop("disabled", true);
                     node_dropdown.empty();
 
                     for (const node of node_list) 
                     {
                         const selected = (node === selected_node) ? "selected" : "";
                         node_dropdown.append(`<option value="${node}" ${selected}>${node}</option>`);
-                    } 
-                } 
+                    }
+
+                    node_dropdown.trigger("change");
+
+                    if (node_dropdown.val()) {
+                        node_dropdown.prop("disabled", false);
+                    }
+                }
                 catch (error) 
                 {
                     if (error.responseJSON.state == "inactive") {
@@ -299,12 +309,12 @@
 
     <div class="form-row">
         <label for="node-input-package_name"><i class="fa fa-fw fa-cubes"></i> Package</label>
-        <select id="node-input-package_name" style="width: 70%;"></select>
+        <select id="node-input-package_name" disabled style="width: 70%;"></select>
     </div>
 
     <div class="form-row">
         <label for="node-input-node_name"><i class="fa fa-fw fa-cube"></i> Node</label>
-        <select id="node-input-node_name" style="width: 70%;"></select>
+        <select id="node-input-node_name" disabled style="width: 70%;"></select>
     </div>
 
     <hr>

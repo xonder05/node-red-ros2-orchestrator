@@ -11,9 +11,9 @@
         category: "ROS2",
         color: "#C0DEED",
         defaults: {
-            topic_name: {value:""},
-            package_name: {value:""},
-            type_name: {value:""},
+            topic_name: {value:"", required: true, validate: function(v) {return v != null && v != ""}},
+            package_name: {value:"", required: true, validate: function(v) {return v != null}},
+            type_name: {value:"", required: true, validate: function(v) {return v != null}},
         },
         inputs: 0,
         outputs: 1,
@@ -74,13 +74,19 @@
 
                     const packages_list = await $.getJSON("ros/local/list_packages");
 
+                    package_dropdown.prop("disabled", true);
                     package_dropdown.empty()
-                    package_dropdown.prop("disabled", false);
 
                     for (const package of packages_list)
                     {
                         const selected = (package === selected_package) ? "selected" : "";
                         package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
+                    }
+
+                    package_dropdown.trigger("change");
+
+                    if (package_dropdown.val()) {
+                        package_dropdown.prop("disabled", false);
                     }
                 } 
                 catch (error) 
@@ -101,13 +107,19 @@
                         package: selected_package,
                     });
 
+                    type_dropdown.prop("disabled", true);
                     type_dropdown.empty();
-                    type_dropdown.prop("disabled", false);
 
                     for (const type of types_list)
                     {
                         const selected = (type === selected_type) ? "selected" : "";
                         type_dropdown.append(`<option value="${type}" ${selected}>${type}</option>`);
+                    }
+
+                    type_dropdown.trigger("change");
+
+                    if (type_dropdown.val()) {
+                        type_dropdown.prop("disabled", false);
                     }
                 } 
                 catch (error) 
@@ -149,12 +161,12 @@
 
     <div class="form-row">
         <label for="node-input-package_name"><i class="fa fa-fw fa-cubes"></i> Package</label>
-        <select id="node-input-package_name" style="width: 70%;"></select>
+        <select id="node-input-package_name" disabled style="width: 70%;"></select>
     </div>
 
     <div class="form-row">
         <label for="node-input-type_name"><i class="fa fa-fw fa-database"></i> Type</label>
-        <select id="node-input-type_name" style="width: 70%;"></select>
+        <select id="node-input-type_name" disabled style="width: 70%;"></select>
     </div>
 
 </script>

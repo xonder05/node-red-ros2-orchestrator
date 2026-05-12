@@ -11,7 +11,7 @@
         category: "config",
         defaults: {
             manager_name: {value: ""},
-            manager_id: {value: ""},
+            manager_id: {value: "", required: true},
         },
         label: function () {
             return this.manager_name || "manager-config";

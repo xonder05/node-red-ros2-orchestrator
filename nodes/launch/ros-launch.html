@@ -11,9 +11,9 @@
         category: "ROS2",
         color: "#E2D96E",
         defaults: {
-            manager: {value: "", type: "manager-config"},
-            package_name: {value: ""},
-            launch_name: {value: ""},
+            manager: {value: "", type: "manager-config", required: true},
+            package_name: {value: "", required: true, validate: function(v) {return v != null}},
+            launch_name: {value: "", required: true, validate: function(v) {return v != null}},
             config_name: {value: ""},
             args: {value: {}},
         },
@@ -84,6 +84,7 @@
                         manager_id: RED.nodes.node(selected_manager).manager_id,
                     });
 
+                    package_dropdown.prop("disabled", true)
                     package_dropdown.empty();
 
                     for (const package of packages_list)
@@ -92,8 +93,10 @@
                         package_dropdown.append(`<option value="${package}" ${selected}>${package}</option>`);
                     }
 
+                    package_dropdown.trigger("change");
+
                     if (package_dropdown.val()) {
-                        package_dropdown.trigger("change");
+                        package_dropdown.prop("disabled", false)
                     }
                 }
                 catch (error) 
@@ -123,6 +126,7 @@
                         package_name: selected_package,
                     });
 
+                    launch_file_dropdown.prop("disabled", true);
                     launch_file_dropdown.empty();
 
                     for (const launch_file of launch_file_list)
@@ -131,9 +135,11 @@
                         launch_file_dropdown.append(`<option value="${launch_file}" ${selected}>${launch_file}</option>`);
                     }
 
+                    launch_file_dropdown.trigger("change");
+
                     if (launch_file_dropdown.val()) {
-                        launch_file_dropdown.trigger("change");
-                    }
+                        launch_file_dropdown.prop("disabled", false);
+                    }                    
                 }
                 catch (error) 
                 {
@@ -162,6 +168,7 @@
                         package_name: selected_package,
                     });
 
+                    config_file_dropdown.prop("disabled", true);
                     config_file_dropdown.empty();
 
                     for (const config_file of config_file_list)
@@ -170,8 +177,10 @@
                         config_file_dropdown.append(`<option value="${config_file}" ${selected}>${config_file}</option>`);
                     }
 
+                    config_file_dropdown.trigger("change");
+
                     if (config_file_dropdown.val()) {
-                        config_file_dropdown.trigger("change");
+                        config_file_dropdown.prop("disabled", false);
                     }
                 } 
                 catch (error) 
@@ -576,17 +585,19 @@
 
             <div class="form-row">
                 <label for="node-input-package_name"><i class="fa fa-fw fa-cubes"></i> Package</label>
-                <select id="node-input-package_name" style="width: 70%;"></select>
+                <select id="node-input-package_name" disabled style="width: 70%;"></select>
             </div>
 
             <div class="form-row">
                 <label for="node-input-launch_name"><i class="fa fa-fw fa-rocket"></i> Launch</label>
-                <select id="node-input-launch_name" style="width: 70%;"></select>
+                <select id="node-input-launch_name" disabled style="width: 70%;"></select>
             </div>
+
+            <hr>
 
             <div class="form-row">
                 <label for="node-input-config_name"><i class="fa fa-fw fa-sliders"></i> Config</label>
-                <select id="node-input-config_name" style="width: 70%;"></select>
+                <select id="node-input-config_name" disabled style="width: 70%;"></select>
             </div>
 
             <div class="form-row">

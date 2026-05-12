@@ -18,6 +18,14 @@ module.exports = function(RED)
             // slice only the node id without subflows
             node.node_id = node.id.slice(node.id.lastIndexOf("-") + 1)
 
+            // validate configuration
+            if (!config.topic_name || !config.package_name || !config.type_name)
+            {
+                node.state = {fill: "red", shape: "ring", text: "Invalid Node Configuration"};
+                node.status(node.state);
+                return 1;
+            }
+
             ros2.state.on("change", interface_state_change_handler);
 
             node.on("input", input_event_handler);

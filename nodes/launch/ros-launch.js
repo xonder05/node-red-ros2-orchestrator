@@ -18,14 +18,21 @@ module.exports = function(RED)
         {
             // slice only the node id without subflows
             node.node_id = node.id.slice(node.id.lastIndexOf("-") + 1);
-            node.manager = RED.nodes.getNode(config.manager);
+
+            // validate configuration
+            if (!config.manager || !config.package_name || !config.launch_name)
+            {
+                node.state = {fill: "red", shape: "ring", text: "Invalid Node Configuration"};
+                node.status(node.state);
+                return 1;
+            }
+
+            // get manager config from environment
+            node.manager_config = RED.nodes.getNode(config.manager);
 
             node.terminal_output = [];
             node.terminal_output_msg_num = 0;
             node.terminal_output_converter = new ansi_to_html();
-
-            // get corresponding manager config from environment
-            node.manager_config = RED.nodes.getNode(config.manager);
 
             if (ros2.state.get() == "active")
             {
@@ -129,7 +136,7 @@ module.exports = function(RED)
             let response_serialized;
             try {
                 response_serialized = await ros2.call(
-                    node.node_id, `/management/commands/${node.manager.manager_id}`, request_serialized
+                    node.node_id, `/management/commands/${node.manager_config.manager_id}`, request_serialized
                 );
             }
             catch (error) {
@@ -197,7 +204,7 @@ module.exports = function(RED)
             let response_serialized;
             try {
                 response_serialized = await ros2.call(
-                    node.node_id, `/management/commands/${node.manager.manager_id}`, request_serialized
+                    node.node_id, `/management/commands/${node.manager_config.manager_id}`, request_serialized
                 );
             } 
             catch (error) {
