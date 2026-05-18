@@ -1,24 +1,29 @@
 {
-  "name": "node-red-ros2-orchestrator",
-  "version": "1.0.0",
-  "description": "",
-  "node-red": {
-    "nodes": {
-      "hidden_flow": "nodes/hidden_flow/hidden_flow.js",
-      "ros-interface": "nodes/interface/ros-interface.js",
-      "manager-config": "nodes/manager-config/manager-config.js",
-      "ros-node": "nodes/node/ros-node.js",
-      "ros-launch": "nodes/launch/ros-launch.js",
-      "publisher": "nodes/ros-publisher/ros-publisher.js",
-      "subscriber": "nodes/ros-subscriber/ros-subscriber.js"
+    "name": "node-red-ros2-orchestrator",
+    "version": "1.0.0",
+    "description": "",
+    "node-red": {
+        "nodes": {
+            "hidden_flow": "nodes/hidden_flow/hidden_flow.js",
+            "ros-interface": "nodes/interface/ros-interface.js",
+            "manager-config": "nodes/manager-config/manager-config.js",
+            "ros-node": "nodes/node/ros-node.js",
+            "ros-launch": "nodes/launch/ros-launch.js",
+            "publisher": "nodes/ros-publisher/ros-publisher.js",
+            "subscriber": "nodes/ros-subscriber/ros-subscriber.js"
+        },
+        "plugins": {
+            "local_endpoints": "plugins/endpoints/local_endpoints.js",
+            "manager_endpoints": "plugins/endpoints/manager_endpoints.js",
+            "sidebar_terminal": "plugins/sidebar/sidebar_terminal.html"
+        }
     },
-    "plugins": {
-      "local_endpoints": "plugins/endpoints/local_endpoints.js",
-      "manager_endpoints": "plugins/endpoints/manager_endpoints.js",
-      "sidebar_terminal": "plugins/sidebar/sidebar_terminal.html"
+    "dependencies": {
+        "ros2_interface_api": "git+https://github.com/xonder05/ros2_interface_api.git",
+        "ansi-to-html": "^0.7.2"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/xonder05/node-red-ros2-orchestrator.git"
     }
-  },
-  "dependencies": {
-    "ansi-to-html": "^0.7.2"
-  }
 }
